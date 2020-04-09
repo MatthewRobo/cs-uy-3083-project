@@ -10,7 +10,7 @@ conn = pymysql.connect(host='localhost',
                        port = 8889,
                        user='root',
                        password='root',
-                       db='FlaskDemo',
+                       db='finstagram',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
 
@@ -134,7 +134,7 @@ def logout():
     session.pop('username')
     return redirect('/')
         
-app.secret_key = 'some key that you will never guess'
+app.secret_key = 'test test test 145'
 #Run the app on localhost port 5000
 #debug = True -> you don't have to restart flask
 #for changes to go through, TURN OFF FOR PRODUCTION
