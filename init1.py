@@ -39,7 +39,7 @@ def loginAuth():
     #cursor used to send queries
     cursor = conn.cursor()
     #executes query
-    query = 'SELECT * FROM user WHERE username = %s and password = %s'
+    query = 'SELECT * FROM Person WHERE username = %s and password = %s'
     cursor.execute(query, (username, password))
     #stores the results in a variable
     data = cursor.fetchone()
@@ -88,7 +88,7 @@ def registerAuth():
 def home():
     user = session['username']
     cursor = conn.cursor();
-    query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
+    query = 'SELECT postingDate, pID FROM photo WHERE poster = %s ORDER BY postingDate DESC'
     cursor.execute(query, (user))
     data = cursor.fetchall()
     cursor.close()
@@ -99,9 +99,9 @@ def home():
 def post():
     username = session['username']
     cursor = conn.cursor();
-    blog = request.form['blog']
-    query = 'INSERT INTO blog (blog_post, username) VALUES(%s, %s)'
-    cursor.execute(query, (blog, username))
+    photo = request.form['photo']
+    query = 'INSERT INTO photo (pID, username) VALUES(%s, %s)'
+    cursor.execute(query, (photo, username))
     conn.commit()
     cursor.close()
     return redirect(url_for('home'))
@@ -113,7 +113,7 @@ def select_blogger():
     #should throw exception if username not found
     
     cursor = conn.cursor();
-    query = 'SELECT DISTINCT username FROM blog'
+    query = 'SELECT DISTINCT username FROM photo'
     cursor.execute(query)
     data = cursor.fetchall()
     cursor.close()
@@ -123,7 +123,7 @@ def select_blogger():
 def show_posts():
     poster = request.args['poster']
     cursor = conn.cursor();
-    query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
+    query = 'SELECT ts, pID FROM photo WHERE username = %s ORDER BY ts DESC'
     cursor.execute(query, poster)
     data = cursor.fetchall()
     cursor.close()
