@@ -17,13 +17,15 @@
 Here are your posts:
 
 <table>
-	<th>Time</th>
-	<th>Post</th>
+	<th>Posted By</th>
+	<th>Posted On</th>
+	<th>Post ID</th>
 
 {% for line in posts %}
 	<tr>
-		<td>{{line.ts}}</td>
-		<td>{{line.blog_post}}</td>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+		<td>{{line.postingDate}}</td>
+		<td>{{line.pID}}</td>
 	</tr>
 {% endfor %}
 </table>

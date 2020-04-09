@@ -88,11 +88,19 @@ def registerAuth():
 def home():
     user = session['username']
     cursor = conn.cursor();
-    query = 'SELECT postingDate, pID FROM photo WHERE poster = %s ORDER BY postingDate DESC'
+    query = 'SELECT postingDate, pID, firstName, lastName \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             ORDER BY postingDate DESC'
+    # query2 = 'SELECT username, firstName, lastName \
+    #           FROM Photo NATURAL JOIN Person NATURAL JOIN Tag \
+    #           WHERE Photo.pID = "2" AND Tag.tagStatus = 1'
     cursor.execute(query, (user))
     data = cursor.fetchall()
     cursor.close()
     return render_template('home.html', username=user, posts=data)
+
+#CREATE VIEW tagged AS (SELECT username, firstName, lastName FROM Photo NATURAL JOIN Person NATURAL JOIN Tag WHERE Photo.pID = "2" AND Tag.tagStatus = 1); 
 
         
 @app.route('/post', methods=['GET', 'POST'])
