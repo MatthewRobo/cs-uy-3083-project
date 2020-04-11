@@ -92,15 +92,40 @@ def home():
              FROM Photo, Person \
              WHERE Photo.poster = %s AND Person.username = Photo.poster \
              ORDER BY postingDate DESC'
-    # query2 = 'SELECT username, firstName, lastName \
-    #           FROM Photo NATURAL JOIN Person NATURAL JOIN Tag \
-    #           WHERE Photo.pID = "2" AND Tag.tagStatus = 1'
     cursor.execute(query, (user))
     data = cursor.fetchall()
     cursor.close()
     return render_template('home.html', username=user, posts=data)
 
-#CREATE VIEW tagged AS (SELECT username, firstName, lastName FROM Photo NATURAL JOIN Person NATURAL JOIN Tag WHERE Photo.pID = "2" AND Tag.tagStatus = 1); 
+@app.route('/tagged')
+def tagged():
+    user2 = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT pID, username, firstName, lastName \
+             FROM Photo NATURAL JOIN Person NATURAL JOIN Tag \
+             WHERE tagStatus = 1 AND pID in \
+             (SELECT pID\
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster)'
+    cursor.execute(query, (user2))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('tagged.html', username=user2, posts=data)
+
+@app.route('/reactedTo')
+def reactedTo():
+    user2 = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT pID, username, comment, emoji \
+             FROM Photo NATURAL JOIN Person NATURAL JOIN ReactTo \
+             WHERE pID IN \
+             (SELECT pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster )'
+    cursor.execute(query, (user2))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('reactedTo.html', username=user2, posts=data)
 
         
 @app.route('/post', methods=['GET', 'POST'])

@@ -14,25 +14,23 @@
 	}
 </style>
 
-Here are your posts:
+Here are the people you tagged in your photos:
 
 <table>
-	<th>Posted By</th>
-	<th>Posted On</th>
-	<th>Post ID</th>
+	<th>Photo ID</th>
+	<th>Username</th>
+	<th>Name</th>
 
 {% for line in posts %}
 	<tr>
-		<td>{{line.firstName + " " + line.lastName}}</td>
-		<td>{{line.postingDate}}</td>
 		<td>{{line.pID}}</td>
+		<td>{{line.username}}</td>
+		<td>{{line.firstName + " " + line.lastName}}</td>
 	</tr>
 {% endfor %}
 </table>
 
-<a href="/tagged">View your photos with their tags</a>
-<br>
-<a href="/reactedTo">View the people that reacted to your photos</a>
+<a href="/home">Home</a>
 <br>
 <a href="/logout">Logout</a>
 
