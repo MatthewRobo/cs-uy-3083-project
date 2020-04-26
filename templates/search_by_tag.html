@@ -1,0 +1,47 @@
+<html>
+<head>
+</head>
+<body>
+
+<form action="/search_tag" method="POST">
+	<a>Search through photos you can see by who's tagged</a> 
+	<br>
+	<input type="text" name = "taggedPersonID" placeholder="enter tagged person's ID" required/> </br>
+	<input type="submit" value = Search />
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+
+Here are your posts:
+
+<table>
+	<th>Posted By</th>
+	<th>Posted On</th>
+	<th>Post ID</th>
+
+{% for line in posts %}
+	<tr>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+		<td>{{line.postingDate}}</td>
+		<td>{{line.pID}}</td>
+	</tr>
+{% endfor %}
+</table>
+
+<br>
+<a href="/home">back</a>
+<br>
+<br>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>

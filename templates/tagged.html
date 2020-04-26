@@ -14,12 +14,12 @@
 	}
 </style>
 
-Here are the people you tagged in your photos:
+Here are the people that has been tagged in photos visible to you:
 
 <table>
 	<th>Photo ID</th>
-	<th>Username</th>
-	<th>Name</th>
+	<th>Tagged person's username</th>
+	<th>Tagged person's name</th>
 
 {% for line in posts %}
 	<tr>
@@ -30,7 +30,9 @@ Here are the people you tagged in your photos:
 {% endfor %}
 </table>
 
-<a href="/home">Home</a>
+<br>
+<a href="/home">back</a>
+<br>
 <br>
 <a href="/logout">Logout</a>
 

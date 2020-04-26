@@ -83,34 +83,67 @@ def registerAuth():
         cursor.close()
         return render_template('index.html')
 
-
 @app.route('/home')
 def home():
-    user = session['username']
+    userID = session['username']
     cursor = conn.cursor();
-    query = 'SELECT postingDate, pID, firstName, lastName \
-             FROM Photo, Person \
-             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+    query = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Follow, Person \
+             WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s \
              ORDER BY postingDate DESC'
-    cursor.execute(query, (user))
+    cursor.execute(query, (userID))
     data = cursor.fetchall()
     cursor.close()
-    return render_template('home.html', username=user, posts=data)
+    return render_template('home.html', username=userID, posts=data)
 
 @app.route('/tagged')
 def tagged():
-    user2 = session['username']
+    userID = session['username']
     cursor = conn.cursor();
     query = 'SELECT pID, username, firstName, lastName \
              FROM Photo NATURAL JOIN Person NATURAL JOIN Tag \
-             WHERE tagStatus = 1 AND pID in \
-             (SELECT pID\
+             WHERE tagStatus = 1 AND pID IN \
+             (SELECT pID \
              FROM Photo, Person \
              WHERE Photo.poster = %s AND Person.username = Photo.poster)'
-    cursor.execute(query, (user2))
+    cursor.execute(query, (userID))
     data = cursor.fetchall()
     cursor.close()
-    return render_template('tagged.html', username=user2, posts=data)
+    return render_template('tagged.html', username=userID, posts=data)
+
+@app.route('/search_by_tag')
+def search_by_tag():
+    return render_template('search_by_tag.html')
+
+@app.route('/search_tag', methods=['GET', 'POST'])
+def search_tag():
+    userID = session['username']
+    taggedPersonID = request.form['taggedPersonID']
+    cursor = conn.cursor()
+    query = 'SELECT pID \
+             FROM Photo, Follow, Person \
+             WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND pID IN \
+             (SELECT pID \
+             FROM Photo NATURAL JOIN Tag \
+             WHERE tagStatus = 1 AND username = %s)'
+    cursor.execute(query, (userID, taggedPersonID))
+    data = cursor.fetchone()
+    error = None
+    if(data):
+        query = 'SELECT firstName, lastName, postingDate, pID \
+                FROM Photo, Follow, Person \
+                WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND pID IN \
+                (SELECT pID \
+                FROM Photo NATURAL JOIN Tag \
+                WHERE tagStatus = 1 AND username = %s)'
+        cursor.execute(query, (userID, taggedPersonID))
+        data = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        return render_template('search_by_tag.html', posts=data)
+    else:
+        error = "There are no photos visible to you with person " + taggedPersonID + " tagged."
+        return render_template('search_by_tag.html', error = error)
 
 @app.route('/reactedTo')
 def reactedTo():
@@ -127,7 +160,6 @@ def reactedTo():
     cursor.close()
     return render_template('reactedTo.html', username=user2, posts=data)
 
-        
 @app.route('/post', methods=['GET', 'POST'])
 def post():
     username = session['username']
@@ -139,8 +171,8 @@ def post():
     cursor.close()
     return redirect(url_for('home'))
 
-@app.route('/select_blogger')
-def select_blogger():
+@app.route('/select_user')
+def select_user():
     #check that user is logged in
     #username = session['username']
     #should throw exception if username not found
@@ -150,7 +182,7 @@ def select_blogger():
     cursor.execute(query)
     data = cursor.fetchall()
     cursor.close()
-    return render_template('select_blogger.html', user_list=data)
+    return render_template('user.html', user_list=data)
 
 @app.route('/show_posts', methods=["GET", "POST"])
 def show_posts():
