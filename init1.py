@@ -93,23 +93,46 @@ def home():
              ORDER BY postingDate DESC'
     cursor.execute(query, (userID))
     data = cursor.fetchall()
+    query2 = 'SELECT firstName, lastName, postingDate, pID \
+              FROM Photo, Person \
+              WHERE Photo.poster = %s AND Person.username = Photo.poster\
+              ORDER BY postingDate DESC'
+    cursor.execute(query2, (userID))
+    data2 = cursor.fetchall()
     cursor.close()
-    return render_template('home.html', username=userID, posts=data)
+    return render_template('home.html', username=userID, posts=data, posts2 = data2)
 
 @app.route('/tagged')
 def tagged():
     userID = session['username']
     cursor = conn.cursor();
-    query = 'SELECT pID, username, firstName, lastName \
-             FROM Photo NATURAL JOIN Person NATURAL JOIN Tag \
-             WHERE tagStatus = 1 AND pID IN \
-             (SELECT pID \
-             FROM Photo, Person \
-             WHERE Photo.poster = %s AND Person.username = Photo.poster)'
+    query = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
+             FROM Photo, Follow, Person AS P, Person AS T, Tag  \
+             WHERE Photo.poster = Follow.follower AND Photo.poster = P.username AND Photo.allFollowers = 1 AND followee = %s AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1'
     cursor.execute(query, (userID))
     data = cursor.fetchall()
+    query2 = 'SELECT DISTINCT tag.pID, tag.username, T.firstName, T.lastName \
+             FROM Photo, Follow, Person AS P, Person AS T, Tag \
+             WHERE Photo.poster = %s AND Photo.poster = P.username AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1'
+    cursor.execute(query2, (userID))
+    data2 = cursor.fetchall()
     cursor.close()
-    return render_template('tagged.html', username=userID, posts=data)
+    return render_template('tagged.html', username=userID, posts=data, posts2 = data2)
+
+@app.route('/reactedTo')
+def reactedTo():
+    userID = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
+             FROM Photo, Follow, Person, ReactTo \
+             WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND ReactTo.pID = Photo.pID'
+    cursor.execute(query, (userID))
+    data = cursor.fetchall()
+    query2 = 'SELECT ReactTo.username, Photo.pID, comment, emoji FROM Photo, ReactTo WHERE Photo.poster = %s AND ReactTo.pID = Photo.pID'
+    cursor.execute(query2, (userID))
+    data2 = cursor.fetchall()
+    cursor.close()
+    return render_template('reactedTo.html', username=userID, posts=data, posts2=data2)
 
 @app.route('/search_by_tag')
 def search_by_tag():
@@ -145,20 +168,39 @@ def search_tag():
         error = "There are no photos visible to you with person " + taggedPersonID + " tagged."
         return render_template('search_by_tag.html', error = error)
 
-@app.route('/reactedTo')
-def reactedTo():
-    user2 = session['username']
-    cursor = conn.cursor();
-    query = 'SELECT pID, username, comment, emoji \
-             FROM Photo NATURAL JOIN Person NATURAL JOIN ReactTo \
-             WHERE pID IN \
+@app.route('/search_by_poster')
+def search_by_poster():
+    return render_template('search_by_poster.html')
+
+@app.route('/search_poster', methods=['GET', 'POST'])
+def search_poster():
+    userID = session['username']
+    posterID = request.form['posterID']
+    cursor = conn.cursor()
+    query = 'SELECT pID \
+             FROM Photo, Follow, Person \
+             WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND pID IN \
              (SELECT pID \
-             FROM Photo, Person \
-             WHERE Photo.poster = %s AND Person.username = Photo.poster )'
-    cursor.execute(query, (user2))
-    data = cursor.fetchall()
-    cursor.close()
-    return render_template('reactedTo.html', username=user2, posts=data)
+             FROM Photo \
+             WHERE poster = %s)'
+    cursor.execute(query, (userID, posterID))
+    data = cursor.fetchone()
+    error = None
+    if(data):
+        query = 'SELECT firstName, lastName, postingDate, pID \
+                FROM Photo, Follow, Person \
+                WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND pID IN \
+                (SELECT pID \
+                FROM Photo \
+                WHERE poster = %s)'
+        cursor.execute(query, (userID, posterID))
+        data = cursor.fetchall()
+        conn.commit()
+        cursor.close()
+        return render_template('search_by_poster.html', posts=data)
+    else:
+        error = "There are no photos visible to you with poster ID " + posterID + "."
+        return render_template('search_by_poster.html', error = error)
 
 @app.route('/post', methods=['GET', 'POST'])
 def post():

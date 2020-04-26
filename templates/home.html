@@ -40,6 +40,13 @@ Here are posts that are visible to you:
 		<td>{{line.pID}}</td>
 	</tr>
 {% endfor %}
+{% for line in posts2 %}
+	<tr>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+		<td>{{line.postingDate}}</td>
+		<td>{{line.pID}}</td>
+	</tr>
+{% endfor %}
 </table>
 
 <br>
@@ -50,6 +57,9 @@ Here are posts that are visible to you:
 <br>
 <br>
 <a href="/search_by_tag">Search through photos you can see by who's tagged</a>
+<br>
+<br>
+<a href="/search_by_poster">Search through photos you can see by their posters</a>
 <br>
 <br>
 <a href="/logout">Logout</a>

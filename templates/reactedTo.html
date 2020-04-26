@@ -2,11 +2,10 @@
 <head>
 </head>
 <body>
-<form action="/post" method="POST">
-	<h1>Welcome {{username}}</h1> 
+<!-- <form action="/post" method="POST">
 	<input type="text" name = "blog" placeholder="post" required/> </br>
 	<input type="submit" value = Post />
-</form>
+</form> -->
 
 <style type="text/css">
 	table, th, td{
@@ -23,6 +22,14 @@ Here are the photos and the people that reacted to photos visible to you:
 	<th>Emoji reaction</th>
 
 {% for line in posts %}
+	<tr>
+		<td>{{line.pID}}</td>
+		<td>{{line.username}}</td>
+		<td>{{line.comment}}</td>
+		<td>{{line.emoji}}</td>
+	</tr>
+{% endfor %}
+{% for line in posts2 %}
 	<tr>
 		<td>{{line.pID}}</td>
 		<td>{{line.username}}</td>

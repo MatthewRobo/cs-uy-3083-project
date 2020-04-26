@@ -3,10 +3,10 @@
 </head>
 <body>
 
-<form action="/search_tag" method="POST">
-	<a>Search through photos you can see by who's tagged</a> 
+<form action="/search_poster" method="POST">
+	<a>Search through photos you can see by the poster</a> 
 	<br>
-	<input type="text" name = "taggedPersonID" placeholder="enter tagged person's ID" required/> </br>
+	<input type="text" name = "posterID" placeholder="enter poster's ID" required/> </br>
 	<input type="submit" value = Search />
 	{% if error %}
 		<p class="error"><strong>Error:</strong> {{error}}</p>
