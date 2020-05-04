@@ -37,6 +37,14 @@ Here are the photos and the people that reacted to all visible posts:
 		<td>{{line.emoji}}</td>
 	</tr>
 {% endfor %}
+{% for line in posts3 %}
+	<tr>
+		<td>{{line.pID}}</td>
+		<td>{{line.username}}</td>
+		<td>{{line.comment}}</td>
+		<td>{{line.emoji}}</td>
+	</tr>
+{% endfor %}
 </table>
 
 <br>

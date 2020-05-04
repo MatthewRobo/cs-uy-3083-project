@@ -34,6 +34,13 @@ Here are the people that has been tagged in all visible posts:
 		<td>{{line.firstName + " " + line.lastName}}</td>
 	</tr>
 {% endfor %}
+{% for line in posts3 %}
+	<tr>
+		<td>{{line.pID}}</td>
+		<td>{{line.username}}</td>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+	</tr>
+{% endfor %}
 </table>
 
 <br>
