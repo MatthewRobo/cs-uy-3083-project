@@ -205,16 +205,18 @@ def search_tag():
              (SELECT pID \
              FROM Photo NATURAL JOIN Tag \
              WHERE tagStatus = 1 AND username = %s)'
-    # query = 'SELECT pID \
-    #          FROM Photo, Follow, Person \
-    #          WHERE Photo.poster = Follow.follower AND Photo.poster = Person.username AND Photo.allFollowers = 1 AND followee = %s AND pID IN \
-    #          (SELECT pID \
-    #          FROM Photo NATURAL JOIN Tag \
-    #          WHERE tagStatus = 1 AND username = %s)'
     cursor.execute(query, (userID, taggedPersonID))
     data = cursor.fetchone()
+    query2 = 'SELECT pID \
+              FROM Photo, Person \
+              WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+              (SELECT Photo.pID \
+              FROM Photo NATURAL JOIN Tag \
+              WHERE tagStatus = 1 AND username = %s)'
+    cursor.execute(query2, (userID, taggedPersonID))
+    data2 = cursor.fetchone()
     error = None
-    if(data):
+    if(data or data2):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
                  WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -223,11 +225,20 @@ def search_tag():
                  WHERE tagStatus = 1 AND username = %s)'
         cursor.execute(query, (userID, taggedPersonID))
         data = cursor.fetchall()
+        query2 = 'SELECT firstName, lastName, postingDate, pID \
+                  FROM Photo, Person \
+                  WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+                  (SELECT Photo.pID \
+                  FROM Photo NATURAL JOIN Tag \
+                  WHERE tagStatus = 1 AND username = %s)'
+        cursor.execute(query2, (userID, taggedPersonID))
+        data2 = cursor.fetchall()
         conn.commit()
         cursor.close()
-        return render_template('search_by_tag.html', posts=data)
+        return render_template('search_by_tag.html', posts=data, posts2=data2)
     else:
         error = "There are no photos visible to you with person " + taggedPersonID + " tagged."
+        cursor.close()
         return render_template('search_by_tag.html', error = error)
 
 @app.route('/search_by_poster')
@@ -247,8 +258,16 @@ def search_poster():
              WHERE poster = %s)'
     cursor.execute(query, (userID, posterID))
     data = cursor.fetchone()
+    query2 = 'SELECT pID \
+              FROM Photo, Person \
+              WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+              (SELECT pID \
+              FROM Photo \
+              WHERE poster = %s)'
+    cursor.execute(query2, (userID, posterID))
+    data2 = cursor.fetchone()
     error = None
-    if(data):
+    if(data or data2):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
                  WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -257,9 +276,17 @@ def search_poster():
                  WHERE poster = %s)'
         cursor.execute(query, (userID, posterID))
         data = cursor.fetchall()
+        query2 = 'SELECT firstName, lastName, postingDate, pID \
+                  FROM Photo, Person \
+                  WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+                  (SELECT pID \
+                  FROM Photo \
+                  WHERE poster = %s)'
+        cursor.execute(query2, (userID, posterID))
+        data2 = cursor.fetchall()
         conn.commit()
         cursor.close()
-        return render_template('search_by_poster.html', posts=data)
+        return render_template('search_by_poster.html', posts=data, posts2=data2)
     else:
         error = "There are no photos visible to you with poster ID " + posterID + "."
         return render_template('search_by_poster.html', error = error)
