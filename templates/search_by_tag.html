@@ -40,6 +40,13 @@ Here are the posts:
 		<td>{{line.pID}}</td>
 	</tr>
 {% endfor %}
+{% for line in posts3 %}
+	<tr>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+		<td>{{line.postingDate}}</td>
+		<td>{{line.pID}}</td>
+	</tr>
+{% endfor %}
 </table>
 
 <br>
