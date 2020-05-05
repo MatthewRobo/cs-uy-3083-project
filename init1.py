@@ -1,6 +1,8 @@
 #Import Flask Library
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
+import os
+from datetime import datetime
 
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -320,8 +322,12 @@ def post_photo():
     photoID = request.form['pID']
     allFollowers = request.form['allFollowers']
     caption = request.form['caption']
-
+    upload_folder = "C:\databases_project\cs-uy-3083-project-master\images"
     now = datetime.now()
+
+    file = request.files['inputFile']
+    filename = photoID + "." + file.filename.rsplit('.', 1)[1].lower()
+    print(filename)
 
     cursor = conn.cursor()
 
@@ -335,8 +341,9 @@ def post_photo():
         error = "This post ID already exists."
         return render_template('postphoto.html', error=error)
     else:
-        query = 'INSERT INTO photo (pID, postingDate, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s)'
-        cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), allFollowers, caption, username))
+        query = 'INSERT INTO photo (pID, postingDate, filePath, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s, %s)'
+        cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), filename, allFollowers, caption, username))
+        file.save(os.path.join(upload_folder, filename))
         conn.commit()
         cursor.close()
         return redirect(url_for('home'))
