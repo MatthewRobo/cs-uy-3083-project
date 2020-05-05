@@ -90,58 +90,47 @@ def registerAuth():
 def home():
     userID = session['username']
     cursor = conn.cursor();
-    # First query is for finding visible photos posted by others
     query = 'SELECT firstName, lastName, postingDate, pID \
              FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
              WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
-             ORDER BY postingDate DESC'
-    cursor.execute(query, (userID))
-    data = cursor.fetchall()
-    # Second query for finding photos posted by me
-    query2 = 'SELECT firstName, lastName, postingDate, pID \
-              FROM Photo, Person \
-              WHERE Photo.poster = %s AND Person.username = Photo.poster\
-              ORDER BY postingDate DESC'
-    cursor.execute(query2, (userID))
-    data2 = cursor.fetchall()
-    # Third query for finding photos posted in Friend Group
-    query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
-              FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-              WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                 SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
-                B.username = %s'
-    cursor.execute(query3, (userID))
-    data3 = cursor.fetchall()
+                B.username = %s \
+             ORDER BY postingDate DESC'
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
     cursor.close()
-    return render_template('home.html', username=userID, posts=data, posts2 = data2, posts3 = data3)
+    return render_template('home.html', username=userID, posts=data)
 
 @app.route('/tagged')
 def tagged():
     userID = session['username']
     cursor = conn.cursor();
-    # First query is for finding visible photos posted by others
     query = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person AS P, Person AS T, Tag \
              WHERE follower = %s AND followStatus = 1 AND P.username = Photo.poster AND allFollowers = 1 AND Tag.pID = Photo.pID AND \
-                Tag.username = T.username AND tagStatus = 1'
-    cursor.execute(query, (userID))
-    data = cursor.fetchall()
-    # Second query for finding photos posted by me
-    query2 = 'SELECT DISTINCT tag.pID, tag.username, T.firstName, T.lastName \
+                Tag.username = T.username AND tagStatus = 1 \
+             UNION \
+             SELECT DISTINCT tag.pID, tag.username, T.firstName, T.lastName \
              FROM Photo, Follow, Person AS P, Person AS T, Tag \
-             WHERE Photo.poster = %s AND Photo.poster = P.username AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1'
-    cursor.execute(query2, (userID))
-    data2 = cursor.fetchall()
-    # Third query for finding photos posted in Friend Group
-    query3 = 'SELECT SharedWith.pID, Tag.username, taggee.firstName, taggee.lastName \
-              FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person AS gCreator, Person AS taggee, Tag \
-              WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+             WHERE Photo.poster = %s AND Photo.poster = P.username AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1 \
+             UNION \
+             SELECT SharedWith.pID, Tag.username, taggee.firstName, taggee.lastName \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person AS gCreator, Person AS taggee, Tag \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                 SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = gCreator.username AND \
                 B.username = %s AND SharedWith.pID = Tag.pID AND tagStatus = 1 AND taggee.username = Tag.username'
-    cursor.execute(query3, (userID))
-    data3 = cursor.fetchall()
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
     cursor.close()
-    return render_template('tagged.html', username=userID, posts=data, posts2 = data2, posts3 = data3)
+    return render_template('tagged.html', username=userID, posts=data)
 
 @app.route('/reactedTo')
 def reactedTo():
@@ -150,25 +139,21 @@ def reactedTo():
     # First query is for finding visible photos posted by others
     query = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person, ReactTo \
-             WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND ReactTo.pID = Photo.pID'
-    cursor.execute(query, (userID))
-    data = cursor.fetchall()
-    # Second query for finding photos posted by me
-    query2 = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
-              FROM Photo, ReactTo \
-              WHERE Photo.poster = %s AND ReactTo.pID = Photo.pID'
-    cursor.execute(query2, (userID))
-    data2 = cursor.fetchall()
-    # Third query for finding photos posted in Friend Group
-    query3 = 'SELECT ReactTo.username, Photo.pID, COMMENT, emoji \
-              FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person, ReactTo \
-              WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+             WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND ReactTo.pID = Photo.pID \
+             UNION\
+             SELECT ReactTo.username, Photo.pID, comment, emoji \
+             FROM Photo, ReactTo \
+             WHERE Photo.poster = %s AND ReactTo.pID = Photo.pID \
+             UNION \
+             SELECT ReactTo.username, Photo.pID, COMMENT, emoji \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person, ReactTo \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                 SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
-                B.username = "A" AND SharedWith.pID = ReactTo.pID'
-    cursor.execute(query3, (userID))
-    data3 = cursor.fetchall()
+                B.username = %s AND SharedWith.pID = ReactTo.pID'
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
     cursor.close()
-    return render_template('reactedTo.html', username=userID, posts=data, posts2=data2)
+    return render_template('reactedTo.html', username=userID, posts=data)
 
 @app.route('/search_by_tag')
 def search_by_tag():
@@ -215,28 +200,26 @@ def search_tag():
                  WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
                  (SELECT pID \
                  FROM Photo NATURAL JOIN Tag \
-                 WHERE tagStatus = 1 AND username = %s)'
-        cursor.execute(query, (userID, taggedPersonID))
-        data = cursor.fetchall()
-        query2 = 'SELECT firstName, lastName, postingDate, pID \
-                  FROM Photo, Person \
-                  WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
-                  (SELECT Photo.pID \
-                  FROM Photo NATURAL JOIN Tag \
-                  WHERE tagStatus = 1 AND username = %s)'
-        cursor.execute(query2, (userID, taggedPersonID))
-        data2 = cursor.fetchall()
-        query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
-                  FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-                  WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                 WHERE tagStatus = 1 AND username = %s) \
+                 UNION \
+                 SELECT firstName, lastName, postingDate, pID \
+                 FROM Photo, Person \
+                 WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+                 (SELECT Photo.pID \
+                 FROM Photo NATURAL JOIN Tag \
+                 WHERE tagStatus = 1 AND username = %s) \
+                 UNION \
+                 SELECT firstName, lastName, postingDate, SharedWith.pID \
+                 FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+                 WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                     SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
                     B.username = %s AND Photo.pID IN \
                     (SELECT Photo.pID FROM Photo NATURAL JOIN Tag WHERE tagStatus = 1 AND username = %s)'
-        cursor.execute(query3, (userID, taggedPersonID))
-        data3 = cursor.fetchall()
+        cursor.execute(query, (userID, taggedPersonID, userID, taggedPersonID, userID, taggedPersonID))
+        data = cursor.fetchall()
         conn.commit()
         cursor.close()
-        return render_template('search_by_tag.html', posts=data, posts2=data2, posts3=data3)
+        return render_template('search_by_tag.html', posts=data)
     else:
         error = "There are no photos visible to you with person " + taggedPersonID + " tagged."
         cursor.close()
@@ -287,28 +270,42 @@ def search_poster():
                  WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
                  (SELECT pID \
                  FROM Photo \
-                 WHERE poster = %s)'
-        cursor.execute(query, (userID, posterID))
-        data = cursor.fetchall()
-        query2 = 'SELECT firstName, lastName, postingDate, pID \
-                  FROM Photo, Person \
-                  WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
-                  (SELECT pID \
-                  FROM Photo \
-                  WHERE poster = %s)'
-        cursor.execute(query2, (userID, posterID))
-        data2 = cursor.fetchall()
-        query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
-                  FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-                  WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                 WHERE poster = %s) \
+                 UNION \
+                 SELECT firstName, lastName, postingDate, pID \
+                 FROM Photo, Person \
+                 WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+                 (SELECT pID \
+                 FROM Photo \
+                 WHERE poster = %s) \
+                 UNION \
+                 SELECT firstName, lastName, postingDate, SharedWith.pID \
+                 FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+                 WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                     SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
                     B.username = %s AND Photo.pID IN \
                     (SELECT pID FROM Photo WHERE poster = %s)'
-        cursor.execute(query3, (userID, posterID))
-        data3 = cursor.fetchall()
+        cursor.execute(query, (userID, posterID, userID, posterID, userID, posterID))
+        data = cursor.fetchall()
+        # query2 = 'SELECT firstName, lastName, postingDate, pID \
+        #           FROM Photo, Person \
+        #           WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
+        #           (SELECT pID \
+        #           FROM Photo \
+        #           WHERE poster = %s)'
+        # cursor.execute(query2, (userID, posterID))
+        # data2 = cursor.fetchall()
+        # query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
+        #           FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+        #           WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+        #             SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
+        #             B.username = %s AND Photo.pID IN \
+        #             (SELECT pID FROM Photo WHERE poster = %s)'
+        # cursor.execute(query3, (userID, posterID))
+        # data3 = cursor.fetchall()
         conn.commit()
         cursor.close()
-        return render_template('search_by_poster.html', posts=data, posts2=data2, posts3=data3)
+        return render_template('search_by_poster.html', posts=data)
     else:
         error = "There are no photos visible to you with poster ID " + posterID + "."
         return render_template('search_by_poster.html', error = error)

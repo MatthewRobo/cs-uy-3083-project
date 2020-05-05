@@ -2,6 +2,8 @@
 <head>
 </head>
 <body>
+
+<h1>Welcome {{username}}</h1> 
 <!-- <form action="/post" method="POST">
 	<input type="text" name = "blog" placeholder="post" required/> </br>
 	<input type="submit" value = Post />
@@ -29,26 +31,10 @@ Here are the photos and the people that reacted to all visible posts:
 		<td>{{line.emoji}}</td>
 	</tr>
 {% endfor %}
-{% for line in posts2 %}
-	<tr>
-		<td>{{line.pID}}</td>
-		<td>{{line.username}}</td>
-		<td>{{line.comment}}</td>
-		<td>{{line.emoji}}</td>
-	</tr>
-{% endfor %}
-{% for line in posts3 %}
-	<tr>
-		<td>{{line.pID}}</td>
-		<td>{{line.username}}</td>
-		<td>{{line.comment}}</td>
-		<td>{{line.emoji}}</td>
-	</tr>
-{% endfor %}
 </table>
 
 <br>
-<a href="/home">back</a>
+<a href="/home"><- back</a>
 <br>
 <br>
 <a href="/logout">Logout</a>
