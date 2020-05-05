@@ -1,0 +1,29 @@
+<html>
+<head>
+</head>
+<body>
+<!-- <form action="/post" method="POST">
+	<input type="text" name = "blog" placeholder="post" required/> </br>
+	<input type="submit" value = Post />
+</form> -->
+
+<form action="/post_photo" method="POST">
+	<input type="text" name = "pID" placeholder="Photo ID" required/> </br>
+	<input type="text" name = "allFollowers" placeholder="All Followers (1 or 0)" required/></br>
+	<input type="text" name = "caption" placeholder="Caption" required/></br>
+	<input type="submit" value = Post />
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+<br>
+<a href="/home">back</a>
+<br>
+<br>
+<a href="/logout">Logout</a>
+
+</body>
+
+
+</html>
