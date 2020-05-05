@@ -313,16 +313,36 @@ def search_poster():
         error = "There are no photos visible to you with poster ID " + posterID + "."
         return render_template('search_by_poster.html', error = error)
 
-@app.route('/post', methods=['GET', 'POST'])
+@app.route ('/post')
 def post():
+    return render_template("postphoto.html")
+
+@app.route('/post_photo', methods=['GET', 'POST'])
+def post_photo():
     username = session['username']
-    cursor = conn.cursor();
-    photo = request.form['photo']
-    query = 'INSERT INTO photo (pID, username) VALUES(%s, %s)'
-    cursor.execute(query, (photo, username))
-    conn.commit()
-    cursor.close()
-    return redirect(url_for('home'))
+    photoID = request.form['pID']
+    allFollowers = request.form['allFollowers']
+    caption = request.form['caption']
+
+    now = datetime.now()
+
+    cursor = conn.cursor()
+
+    query = 'SELECT * FROM photo WHERE pID = %s'
+    cursor.execute(query, (photoID))
+
+    data = cursor.fetchone()
+
+    error = None
+    if (data):
+        error = "This post ID already exists."
+        return render_template('postphoto.html', error=error)
+    else:
+        query = 'INSERT INTO photo (pID, postingDate, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s)'
+        cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), allFollowers, caption, username))
+        conn.commit()
+        cursor.close()
+        return redirect(url_for('home'))
 
 @app.route('/select_user')
 def select_user():
