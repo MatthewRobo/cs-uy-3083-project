@@ -379,7 +379,7 @@ def add_friend():
              WHERE fg.groupCreator = %s'
     if(data):
         if (addrem == '-'):
-            status = "%s was added to %s." % (friend, fgroup)
+            status = "%s was removed from %s." % (friend, fgroup)
             deletthis = 'DELETE FROM belongto WHERE username = %s AND groupName = %s AND groupCreator = %s'
             cursor.execute(deletthis, (friend, fgroup, username))
             cursor.execute(query, (username))
