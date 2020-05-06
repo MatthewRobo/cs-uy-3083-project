@@ -108,10 +108,8 @@
 
 	.logo svg {
 		fill: #fff;
-		padding:  16px;
+		padding: 16px;
 	}
-
-
 	</style>
 	<ul>
 		<li class="logo"><svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 135 46" width="135" height="46">
@@ -127,6 +125,7 @@
 		<h1> Friend Groups </h1>
 		To add a friend to a group, type in their username and press [+]. <br>
 		To remove a friend from a group, type in their username and press [-]. <br>
+		To group, type in the group name in the <strong>bottom row</strong> and press [-]. <br>
 		<strong> This cannot be undone. </strong>
 		{% if error %}
 		<p class="error"><strong>Error:</strong> {{error}}</p>
@@ -135,24 +134,36 @@
 		<p> {{status}} </p>
 		{% endif %}
 		<table>
-			<td>Group Name</td>
-			<td>Group Description</td>
-			<td>Username</td>
-			<td>Name</td>
-			<td></td>
-			<td></td>
+			<th>Group Name</th>
+			<th>Group Description</th>
+			<th>Username</th>
+			<th>Name</th>
+			<th></th>
+			<th></th>
 			{% for line in groups %}
 			<form action="/add_friend" method="POST">
 				<tr>
 					<td>{{line.groupN}}</td>
 					<td>{{line.description}}</td>
 					<td>{{line.friend}}</td>
-					<td>{{line.firstName}} {{line.lastName}}</td>
+					<td> {%if line.firstName %}
+						{{line.firstName}} {{line.lastName}}
+						{% endif %}</td>
 					<td> <input type="text" name=friendName placeholder="Add / Remove {{line.groupN}}" required /></td>
 					<td> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
 				</tr>
 			</form>
 			{% endfor %}
+			<form action="/add_friendgroup" method="POST">
+				<tr>
+					<td><input type="text" name=groupName placeholder="Create / Delete group" required /></td>
+					<td><input type="text" name=description placeholder="New Description" /></td>
+					<td></td>
+					<td></td>
+					<td></td>
+					<td> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
+				</tr>
+			</form>
 		</table>
 		<br>
 	</div>

@@ -350,6 +350,67 @@ def show_friendgroups():
     cursor.close()
     return render_template('show_friendgroups.html', groups=data)
 
+# Mandatory feature 5
+# Implemented by Matthew Nguyen (mdn296)
+# Adds friendgroups
+@app.route('/add_friendgroup', methods=['GET', 'POST'])
+def add_friendgroup():
+    username = session['username']
+    fgroup = request.form['groupName']
+    description = request.form['description']
+    addrem = request.form['addrem'] # Add/Removal flag, add is '+', remove is '-'
+
+    cursor = conn.cursor()
+    # Finds if friendgroup with same name already exists
+    query = 'SELECT * FROM friendgroup \
+             WHERE groupCreator = %s \
+             AND groupName = %s '
+    cursor.execute(query, (username, fgroup))
+    data = cursor.fetchone()
+    error = None
+
+    # Finds all friendgroups and friends
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    if(data):
+        if (addrem == '-'):
+            status = "Group \"%s\" was deleted." % (fgroup)
+            deletebelong = 'DELETE FROM belongto WHERE groupName = %s AND groupCreator = %s'
+            deletegroup = 'DELETE FROM friendgroup WHERE groupName = %s AND groupCreator = %s'
+            cursor.execute(deletebelong, (fgroup, username))
+            cursor.execute(deletegroup, (fgroup, username))
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+        else:
+            # If the first query returns data, then friendgroup exists
+            error = "Personal group \"%s\" already exists." % (fgroup)
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            return render_template('show_friendgroups.html', groups = data2, error = error)
+    else:
+        if (addrem == '-'):
+            status = "Group \"%s\" does not exist." % (fgroup)
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+        else:
+            ins = 'INSERT INTO friendgroup VALUES(%s, %s, %s)'
+            status = "Group \"%s\" added." % (fgroup)
+            cursor.execute(ins, (fgroup, username, description))
+            conn.commit()
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+
+
 # Extra feature 11
 # Implemented by Matthew Nguyen (mdn296)
 # Adds and remove friends from friend group
