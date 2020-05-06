@@ -1,0 +1,123 @@
+body {
+	font-family: 'Montserrat', sans-serif;
+	background-color: #fdf9f9;
+}
+
+div {
+	background-color: #fff;
+	margin: 2em auto;
+	padding: 1em;
+	max-width: 800px;
+	border: 1px solid black;
+	font-size: 16px;
+	color: #454545;
+	min-height: 80%;
+}
+
+h1 {
+	color: #57068c;
+	font-size: 32px;
+}
+
+table {
+	border: 1px solid black;
+	padding: 4px;
+	margin: 1em;
+	min-width: 300px;
+}
+
+th {
+	border-bottom: 1px solid black;
+	text-align: left;
+	padding: 2px;
+	font-weight: normal;
+}
+
+td {
+	padding: 4px
+}
+
+a,
+a:visited {
+	color: #ffffff;
+	text-decoration: none;
+}
+
+tr:hover {
+	background-color: #F001;
+}
+
+ul {
+	max-width: 832px;
+	list-style-type: none;
+	margin: 0 auto;
+	padding: 0;
+	overflow: hidden;
+	background-color: #57068c;
+}
+
+li {
+	float: left;
+}
+
+li a {
+	display: block;
+	color: white;
+	text-align: center;
+	padding: 30px 16px;
+	font-weight: bold;
+	font-size: 18px;
+	text-decoration: none;
+	vertical-align: middle;
+}
+
+li a:hover {
+	background-color: #220337;
+}
+
+.button,
+.button-small,
+.button-big {
+	background-color: #57068c;
+	border: none;
+	color: white;
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	cursor: pointer;
+	margin: 4px 2px;
+}
+
+.button {
+	font-size: 16px;
+}
+
+.button,
+.button-big {
+	padding: 4px;
+}
+
+.button-small {
+	width: 1.3em;
+	height: 1.3em;
+	padding: auto;
+	font-size: 16px;
+}
+
+.button:visited,
+.button-big:visited,
+.button-small:visited {
+	color: white;
+}
+
+.button:hover,
+.button-big:hover,
+.button-small:hover {
+	color: white;
+	background-color: #220337;
+}
+
+.logo svg {
+	fill: #fff;
+	padding: 16px;
+}
