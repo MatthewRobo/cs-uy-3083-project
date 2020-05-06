@@ -32,6 +32,37 @@ Here are the people that has been tagged in all visible posts:
 </table>
 
 <br>
+Here are all unaccepted tags:
+
+<table>
+	<th>Photo ID</th>
+	<th> Tagged username</th>
+	<th> Tagged name</th>
+
+{% for line in posts2 %}
+	<tr>
+		<td>{{line.pID}}</td>
+		<td>{{line.username}}</td>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+	</tr>
+{% endfor %}
+</table>
+<br>
+
+<form action="/accept_tags" method="POST">
+	<input type="text" name = "post" placeholder="Photo ID" required/> </br>
+	<input type="text" name = "accept" placeholder="Do you accept the tag? (Yes/No)" required/></br>
+    <input type="submit" value = Submit>
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+<br>
+<a href="/add_tags">Add tags to visible posts</a>
+<br>
+
+<br>
 <a href="/home"><- back</a>
 <br>
 <br>

@@ -1,0 +1,63 @@
+<html>
+<head>
+</head>
+<body>
+
+<!-- <form action="/post" method="POST">
+	<input type="text" name = "blog" placeholder="post" required/> </br>
+	<input type="submit" value = Post />
+</form> -->
+
+<!-- <form action="/show_tagged" method="POST">
+	<a>Search by for photos with tags</a>
+	<br>
+	<input type="text" name = "pID" placeholder="enter photo ID" required/> </br>
+	<input type="submit" value = Search />
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form> -->
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+
+Here are all the posts that are visible to you:
+
+<table>
+	<th>Posted By</th>
+	<th>Posted On</th>
+	<th>Post ID</th>
+
+{% for line in posts %}
+	<tr>
+		<td>{{line.firstName + " " + line.lastName}}</td>
+		<td>{{line.postingDate}}</td>
+		<td>{{line.pID}}</td>
+	</tr>
+{% endfor %}
+</table>
+
+<br>
+<a href="/tagged">View tags on all visible posts</a>
+<br>
+
+<br>
+Who would you like to tag?
+<br>
+
+<form action="/apply_tags" method="POST">
+	<input type="text" name = "post" placeholder="Photo ID" required/> </br>
+	<input type="text" name = "target" placeholder="Who you're tagging" required/></br>
+    <input type="submit" value = Submit>
+	{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+	{% endif %}
+</form>
+
+</body>
+
+
+</html>

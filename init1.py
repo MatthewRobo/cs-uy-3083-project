@@ -92,6 +92,9 @@ def registerAuth():
 def home():
     userID = session['username']
     cursor = conn.cursor();
+    #First query before the union is for finding all visible posts posted by other people
+    #Second query is for finding all visible posts posted by the logged in user
+    #Third query is for finding all visibnle posts posted in a FriendGroup that the logged in user belongs to
     query = 'SELECT firstName, lastName, postingDate, pID \
              FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
              WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
@@ -111,11 +114,14 @@ def home():
     cursor.close()
     return render_template('home.html', username=userID, posts=data)
 
-@app.route('/tagged')
+@app.route('/tagged', methods=['GET', 'POST'])
 def tagged():
     userID = session['username']
     cursor = conn.cursor();
-    query = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
+    #First query before the union is for finding all visible posts with tags posted by other people
+    #Second query is for finding all visible posts with tags posted by the logged in user
+    #Third query is for finding all visibnle posts with tags posted in a FriendGroup that the logged in user belongs to
+    query1 = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person AS P, Person AS T, Tag \
              WHERE follower = %s AND followStatus = 1 AND P.username = Photo.poster AND allFollowers = 1 AND Tag.pID = Photo.pID AND \
                 Tag.username = T.username AND tagStatus = 1 \
@@ -129,16 +135,127 @@ def tagged():
              WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
                 SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = gCreator.username AND \
                 B.username = %s AND SharedWith.pID = Tag.pID AND tagStatus = 1 AND taggee.username = Tag.username'
-    cursor.execute(query, (userID, userID, userID))
+    cursor.execute(query1, (userID, userID, userID))
     data = cursor.fetchall()
+
+    query2 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+            FROM (tag NATURAL JOIN person) \
+            WHERE tag.tagStatus = 0 AND person.username = %s'
+
+    cursor.execute(query2, (userID))
+    data2 = cursor.fetchall()
     cursor.close()
-    return render_template('tagged.html', username=userID, posts=data)
+    return render_template('tagged.html', username=userID, posts=data, posts2=data2)
+
+@app.route('/accept_tags', methods=['GET', 'POST'])
+def accept_tags():
+    userID = session['username']
+    post = request.form['post']
+    accept = request.form['accept']
+    cursor = conn.cursor();
+    #First query before the union is for finding all visible posts with tags posted by other people
+    #Second query is for finding all visible posts with tags posted by the logged in user
+    #Third query is for finding all visible posts with tags posted in a FriendGroup that the logged in user belongs to
+    query1 = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
+             FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person AS P, Person AS T, Tag \
+             WHERE follower = %s AND followStatus = 1 AND P.username = Photo.poster AND allFollowers = 1 AND Tag.pID = Photo.pID AND \
+                Tag.username = T.username AND tagStatus = 1 \
+             UNION \
+             SELECT DISTINCT tag.pID, tag.username, T.firstName, T.lastName \
+             FROM Photo, Follow, Person AS P, Person AS T, Tag \
+             WHERE Photo.poster = %s AND Photo.poster = P.username AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1 \
+             UNION \
+             SELECT SharedWith.pID, Tag.username, taggee.firstName, taggee.lastName \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person AS gCreator, Person AS taggee, Tag \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = gCreator.username AND \
+                B.username = %s AND SharedWith.pID = Tag.pID AND tagStatus = 1 AND taggee.username = Tag.username'
+    cursor.execute(query1, (userID, userID, userID))
+    data = cursor.fetchall()
+
+    query2 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+            FROM (tag NATURAL JOIN person) \
+            WHERE tag.tagStatus = 0 AND person.username = %s AND pID = %s'
+
+    cursor.execute(query2, (userID, post))
+    data2 = cursor.fetchone()
+
+    if not (data2):
+        query3 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+                    FROM (tag NATURAL JOIN person) \
+                    WHERE tag.tagStatus = 0 AND person.username = %s'
+
+        cursor.execute(query3, (userID))
+        data3 = cursor.fetchall()
+        cursor.close()
+        error = 'You do not have an unaccepted tag on this post.'
+        return render_template('tagged.html', username=userID, posts=data, posts2=data3, error=error)
+
+    else:
+        if (accept == "yes" or accept == "Yes"):
+            query3 = 'UPDATE tag SET tagStatus = 1 WHERE pID = %s AND username = %s'
+            cursor.execute(query3, (post, userID))
+
+            query4 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+                        FROM (tag NATURAL JOIN person) \
+                        WHERE tag.tagStatus = 0 AND person.username = %s'
+
+            cursor.execute(query4, (userID))
+            data3 = cursor.fetchall()
+
+            query1 = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
+                     FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person AS P, Person AS T, Tag \
+                     WHERE follower = %s AND followStatus = 1 AND P.username = Photo.poster AND allFollowers = 1 AND Tag.pID = Photo.pID AND \
+                        Tag.username = T.username AND tagStatus = 1 \
+                     UNION \
+                     SELECT DISTINCT tag.pID, tag.username, T.firstName, T.lastName \
+                     FROM Photo, Follow, Person AS P, Person AS T, Tag \
+                     WHERE Photo.poster = %s AND Photo.poster = P.username AND Tag.pID = Photo.pID AND Tag.username = T.username AND tagStatus = 1 \
+                     UNION \
+                     SELECT SharedWith.pID, Tag.username, taggee.firstName, taggee.lastName \
+                     FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person AS gCreator, Person AS taggee, Tag \
+                     WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                        SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = gCreator.username AND \
+                        B.username = %s AND SharedWith.pID = Tag.pID AND tagStatus = 1 AND taggee.username = Tag.username'
+            cursor.execute(query1, (userID, userID, userID))
+            data = cursor.fetchall()
+
+            cursor.close()
+            error = 'Successfully accepted tag.'
+            return render_template('tagged.html', username=userID, posts=data, posts2=data3, error=error)
+
+        elif (accept == "no" or accept == "No"):
+            query3 = 'DELETE FROM tag WHERE pID = %s AND username = %s'
+            cursor.execute(query3, (post, userID))
+
+            query4 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+                        FROM (tag NATURAL JOIN person) \
+                        WHERE tag.tagStatus = 0 AND person.username = %s'
+
+            cursor.execute(query4, (userID))
+            data3 = cursor.fetchall()
+            cursor.close()
+            error = 'Successfully rejected tag.'
+            return render_template('tagged.html', username=userID, posts=data, posts2=data3, error=error)
+
+        else:
+            query3 = 'SELECT tag.pID, tag.username, person.firstName, person.lastName \
+                        FROM (tag NATURAL JOIN person) \
+                        WHERE tag.tagStatus = 0 AND person.username = %s'
+
+            cursor.execute(query3, (userID))
+            data3 = cursor.fetchall()
+            cursor.close()
+            error = 'Not an acceptable input.'
+            return render_template('tagged.html', username=userID, posts=data, posts2=data3, error=error)
 
 @app.route('/reactedTo')
 def reactedTo():
     userID = session['username']
     cursor = conn.cursor();
-    # First query is for finding visible photos posted by others
+    #First query before the union is for finding all visible posts with reactions posted by other people
+    #Second query is for finding all visible posts with reactions posted by the logged in user
+    #Third query is for finding all visibnle posts with reactions posted in a FriendGroup that the logged in user belongs to
     query = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person, ReactTo \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND ReactTo.pID = Photo.pID \
@@ -163,13 +280,13 @@ def search_by_tag():
 
 @app.route('/search_tag', methods=['GET', 'POST'])
 def search_tag():
-    # Extra feature 9
-    # Implemented by Simon Oh
-    # Searches through all the photos that are visible to the user by the people who are tagged
+    #Extra feature 9
+    #Implemented by Simon Oh
+    #Searches through all the photos that are visible to the user by the people who are tagged
     userID = session['username']
     taggedPersonID = request.form['taggedPersonID']
     cursor = conn.cursor()
-    # First query is for searching for tags in the photos that other people posted
+    #First query is for searching for tags in the photos that other people posted
     query = 'SELECT pID \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -178,7 +295,7 @@ def search_tag():
              WHERE tagStatus = 1 AND username = %s)'
     cursor.execute(query, (userID, taggedPersonID))
     data = cursor.fetchone()
-    # Second query is for searching for tags in the photos that I posted
+    #Second query is for searching for tags in the photos that was posted by the logged in user
     query2 = 'SELECT pID \
               FROM Photo, Person \
               WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
@@ -187,7 +304,7 @@ def search_tag():
               WHERE tagStatus = 1 AND username = %s)'
     cursor.execute(query2, (userID, taggedPersonID))
     data2 = cursor.fetchone()
-    # Third query is for searching for tags in the photos that are shared in the FriendGroup that I belong in
+    #Third query is for searching for tags in the photos that are shared in the FriendGroup that the logged in user belongs in
     query3 = 'SELECT SharedWith.pID \
               FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
               WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
@@ -196,6 +313,7 @@ def search_tag():
     cursor.execute(query3, (userID, taggedPersonID))
     data3 = cursor.fetchone()
     error = None
+    #If no posts exist from the result of the three searches above, jump to the else statement
     if(data or data2 or data3):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
@@ -233,13 +351,13 @@ def search_by_poster():
 
 @app.route('/search_poster', methods=['GET', 'POST'])
 def search_poster():
-    # Extra feature 10
-    # Implemented by Simon Oh
-    # Searches through all the photos that are visible to the user by the people who posted them
+    #Extra feature 10
+    #Implemented by Simon Oh
+    #Searches through all the photos that are visible to the user by the people who posted them
     userID = session['username']
     posterID = request.form['posterID']
     cursor = conn.cursor()
-    # First query is for searching by usernames in the photos that other people posted
+    #First query is for searching by usernames in the photos that other people posted
     query = 'SELECT pID \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -248,7 +366,7 @@ def search_poster():
              WHERE poster = %s)'
     cursor.execute(query, (userID, posterID))
     data = cursor.fetchone()
-    # Second query is for searching by usernames in the photos that I posted
+    #Second query is for searching by usernames in the photos that the logged in user posted
     query2 = 'SELECT pID \
               FROM Photo, Person \
               WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
@@ -257,6 +375,7 @@ def search_poster():
               WHERE poster = %s)'
     cursor.execute(query2, (userID, posterID))
     data2 = cursor.fetchone()
+    #Third query is for searching by usernames in the photos that are shared in the FriendGroup that the logged in user belongs in
     query3 = 'SELECT SharedWith.pID \
               FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
               WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
@@ -266,6 +385,7 @@ def search_poster():
     cursor.execute(query3, (userID, posterID))
     data3 = cursor.fetchone()
     error = None
+    #If no posts exist from the result of the three searches above, jump to the else statement
     if(data or data2 or data3):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
@@ -453,7 +573,117 @@ def update_follows():
     cursor.close()
     return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received, error=error)
 
+@app.route('/add_tags', methods=['GET', 'POST'])
+def add_tags():
+    userID = session['username']
+    cursor = conn.cursor()
+    query = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
+                B.username = %s \
+             ORDER BY postingDate DESC'
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('addtags.html', username=userID, posts=data)
 
+@app.route('/apply_tags', methods=['GET', 'POST'])
+def apply_tags():
+    userID = session['username']
+    post = request.form['post']
+    target = request.form['target']
+
+    cursor = conn.cursor()
+
+    query = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
+                B.username = %s \
+             ORDER BY postingDate DESC'
+
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
+
+    query1 = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = %s AND F.groupCreator = Person.username AND \
+                B.username = %s'
+
+    cursor.execute(query1, (userID, post, userID, post, post, userID))
+    is_visible = cursor.fetchone()
+
+    if not (is_visible):
+        error = "This post is not available for you to tag."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    query2 = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = %s AND F.groupCreator = Person.username AND \
+                B.username = %s'
+
+    cursor.execute(query2, (target, post, target, post, post, target))
+    is_visible2 = cursor.fetchone()
+
+    if not (is_visible2):
+        error = "This post is not visible to user " + target + "."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    query3 = 'SELECT pID FROM tag WHERE pID = %s AND username = %s'
+
+    cursor.execute(query3, (post, target))
+    is_found = cursor.fetchone()
+
+    if (is_found):
+        error = "This post already tags user " + target + "."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    if (target == userID):
+        query4 = 'INSERT INTO tag (pID, username, tagStatus) VALUES (%s, %s, 1)'
+        cursor.execute(query4, (post, target))
+        error = "Added tag to " + target + " successfully."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    else:
+        query4 = 'INSERT INTO tag (pID, username, tagStatus) VALUES (%s, %s, 0)'
+        cursor.execute(query4, (post, target))
+        error = "Added tag to " + target + " successfully."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
 # Extra feature pre-11
 # Implemented by Matthew Nguyen (mdn296)
 # Displays friendgroups to user
