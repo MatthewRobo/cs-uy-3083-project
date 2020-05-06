@@ -32,6 +32,7 @@
 		border: 1px solid black;
 		padding: 4px;
 		margin: 1em;
+		min-width: 300px;
 	}
 
 	th {
@@ -97,10 +98,25 @@
 		cursor: pointer;
 	}
 
+	.button {
+		background-color: #57068c;
+		border: none;
+		color: white;
+		padding: 4px;
+		text-align: center;
+		text-decoration: none;
+		display: inline-block;
+		font-size: 16px;
+		margin: 4px 2px;
+		cursor: pointer;
+	}
+
+	.button:visited,
 	.button-small:visited {
 		color: white;
 	}
 
+	.button:hover,
 	.button-small:hover {
 		color: white;
 		background-color: #220337;
@@ -122,12 +138,12 @@
 		<li><a href="/logout">Logout</a></li>
 	</ul>
 	<div>
-		<h1> Friend Groups </h1>
-		To add a friend to a group, type in their username and press [+]. <br>
+		<h1> Follows </h1>
+		<!-- 		To add a friend to a group, type in their username and press [+]. <br>
 		To remove a friend from a group, type in their username and press [-]. <br>
 		To group, type in the group name in the <strong>bottom row</strong> and press [-]. <br>
 		<strong> This cannot be undone. </strong>
-		{% if error %}
+ --> {% if error %}
 		<p class="error"><strong>Error:</strong> {{error}}</p>
 		{% endif %}
 		{% if status %}
@@ -135,37 +151,61 @@
 		{% endif %}
 		<table>
 			<tr>
-				<th>Group Name</th>
-				<th>Group Description</th>
+				<th colspan="2">Current mutuals</th>
+			</tr>
+			<tr>
 				<th>Username</th>
 				<th>Name</th>
-				<th></th>
-				<th></th>
 			</tr>
-			{% for line in groups %}
-			<form action="/add_friend" method="POST">
+			{% for line in mutuals %}
+			<tr>
+				<td>{{line.uname}}</td>
+				<td> {%if line.fname %}
+					{{line.fname}} {{line.lname}}
+					{% endif %}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		<table>
+			<tr>
+				<th colspan="2">Pending follows</th>
+			</tr>
+			<tr>
+				<th>Username</th>
+				<th>Name</th>
+			</tr>
+			{% for line in sent %}
+			<tr>
+				<td>{{line.uname}}</td>
+				<td> Hidden until they accept</td>
+			</tr>
+			{% endfor %}
+			<form action="/update_follows" method="POST">
 				<tr>
-					<td>{{line.groupN}}</td>
-					<td>{{line.description}}</td>
-					<td>{{line.friend}}</td>
-					<td> {%if line.firstName %}
-						{{line.firstName}} {{line.lastName}}
+					<td><input type="text" name="target" placeholder="Username" required /></td>
+					<td> <input type="submit" class="button" name="addrem" value='Send' /></td>
+				</tr>
+			</form>
+		</table>
+		<table>
+			<tr>
+				<th colspan="2">Received follows</th>
+			</tr>
+			<tr>
+				<th>Username</th>
+				<th>Name</th>
+			</tr>
+			{% for line in received %}
+			<form action="/update_follows" method="POST">
+				<tr>
+					<td>{{line.uname}}</td>
+					<td> {%if line.fname %}
+						{{line.fname}} {{line.lname}}
 						{% endif %}</td>
-					<td> <input type="text" name=friendName placeholder="Add / Remove {{line.groupN}}" required /></td>
-					<td> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
+					<td> <input type="hidden" name="target" value="{{line.uname}}" /> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
 				</tr>
 			</form>
 			{% endfor %}
-			<form action="/add_friendgroup" method="POST">
-				<tr>
-					<td><input type="text" name=groupName placeholder="Create / Delete group" required /></td>
-					<td><input type="text" name=description placeholder="New Description" /></td>
-					<td></td>
-					<td></td>
-					<td></td>
-					<td> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
-				</tr>
-			</form>
 		</table>
 		<br>
 	</div>

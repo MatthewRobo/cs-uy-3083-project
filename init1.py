@@ -452,6 +452,127 @@ def post_photo():
         cursor.close()
         return redirect(url_for('home'))
 
+# Mandatory feature 4
+# Implemented by Matthew Nguyen (mdn296)
+# Displays follows to user
+@app.route('/show_follows')
+def show_follows():
+    username = session['username']
+    cursor = conn.cursor();
+
+    query = 'SELECT DISTINCT  \
+                 CASE WHEN f.follower = %s THEN f.followee ELSE f.follower \
+             END AS uname, \
+                 CASE WHEN f.follower = %s THEN p1.firstname ELSE p2.firstname \
+             END AS fname, \
+                 CASE WHEN f.follower = %s THEN p1.lastname ELSE p2.lastname \
+             END AS lname \
+             FROM \
+                 `follow` AS f \
+             LEFT JOIN person AS p1 \
+             ON \
+                 f.followee = p1.username \
+             LEFT JOIN person AS p2 \
+             ON \
+                 f.follower = p2.username \
+             WHERE \
+                 %s IN(follower, followee) AND 1 IN(followStatus) '
+    cursor.execute(query, (username,username,username,username))
+    mutuals = cursor.fetchall()
+    query = 'SELECT followee AS uname FROM follow WHERE %s IN (follower) AND 0 IN (followstatus)'
+    cursor.execute(query, (username))
+    sent = cursor.fetchall()
+    query = 'SELECT \
+                 p.username AS uname, \
+                 p.firstName AS fname, \
+                 p.lastName AS lname \
+             FROM \
+                 follow AS f \
+             LEFT JOIN person AS p \
+             ON \
+                 f.follower = p.username \
+             WHERE \
+                 %s IN(followee) AND 0 IN(followstatus)'
+    cursor.execute(query, (username))
+    received = cursor.fetchall()
+    cursor.close()
+    return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received)
+
+# Mandatory feature 4
+# Implemented by Matthew Nguyen (mdn296)
+# Displays follows to user
+@app.route('/update_follows', methods=['GET', 'POST'])
+def update_follows():
+    username = session['username']
+    cursor = conn.cursor();
+    target = request.form['target']
+    addrem = request.form['addrem'] # Add/Removal flag, add is '+', remove is '-', send new is 'send'
+    error = None
+    data = None
+    if (addrem == 'Send'):
+        query = 'SELECT * FROM follow WHERE %s IN (follower, followee) AND %s IN (follower, followee)'
+        cursor.execute(query, (username, target))
+
+    if (addrem == '+'):
+        accept = 'UPDATE follow \
+                  SET followstatus = 1 \
+                  WHERE follower = %s \
+                  AND followee = %s'
+        cursor.execute(accept, (target, username))
+
+    if (addrem == '-'):
+        deny = 'DELETE FROM follow \
+                WHERE follower = %s \
+                AND followee = %s'
+        cursor.execute(deny, (target, username))
+
+    if (addrem == 'Send'):
+        data = cursor.fetchone()
+        if (data):
+            error = "[ %s <- - ? - -> %s ] followship already exists" % (username, target)
+        else:
+            ins = 'INSERT INTO follow VALUES (%s, %s, 0)'
+            cursor.execute(ins, (username, target))
+
+
+    query = 'SELECT DISTINCT  \
+                 CASE WHEN f.follower = %s THEN f.followee ELSE f.follower \
+             END AS uname, \
+                 CASE WHEN f.follower = %s THEN p1.firstname ELSE p2.firstname \
+             END AS fname, \
+                 CASE WHEN f.follower = %s THEN p1.lastname ELSE p2.lastname \
+             END AS lname \
+             FROM \
+                 `follow` AS f \
+             LEFT JOIN person AS p1 \
+             ON \
+                 f.followee = p1.username \
+             LEFT JOIN person AS p2 \
+             ON \
+                 f.follower = p2.username \
+             WHERE \
+                 %s IN(follower, followee) AND 1 IN(followStatus) '
+    cursor.execute(query, (username,username,username,username))
+    mutuals = cursor.fetchall()
+    query = 'SELECT followee AS uname FROM follow WHERE %s IN (follower) AND 0 IN (followstatus)'
+    cursor.execute(query, (username))
+    sent = cursor.fetchall()
+    query = 'SELECT \
+                 p.username AS uname, \
+                 p.firstName AS fname, \
+                 p.lastName AS lname \
+             FROM \
+                 follow AS f \
+             LEFT JOIN person AS p \
+             ON \
+                 f.follower = p.username \
+             WHERE \
+                 %s IN(followee) AND 0 IN(followstatus)'
+    cursor.execute(query, (username))
+    received = cursor.fetchall()
+    cursor.close()
+    return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received, error=error)
+
 @app.route('/add_tags', methods=['GET', 'POST'])
 def add_tags():
     userID = session['username']
@@ -580,6 +701,67 @@ def show_friendgroups():
     data = cursor.fetchall()
     cursor.close()
     return render_template('show_friendgroups.html', groups=data)
+
+# Mandatory feature 5
+# Implemented by Matthew Nguyen (mdn296)
+# Adds friendgroups
+@app.route('/add_friendgroup', methods=['GET', 'POST'])
+def add_friendgroup():
+    username = session['username']
+    fgroup = request.form['groupName']
+    description = request.form['description']
+    addrem = request.form['addrem'] # Add/Removal flag, add is '+', remove is '-'
+
+    cursor = conn.cursor()
+    # Finds if friendgroup with same name already exists
+    query = 'SELECT * FROM friendgroup \
+             WHERE groupCreator = %s \
+             AND groupName = %s '
+    cursor.execute(query, (username, fgroup))
+    data = cursor.fetchone()
+    error = None
+
+    # Finds all friendgroups and friends
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    if(data):
+        if (addrem == '-'):
+            status = "Group \"%s\" was deleted." % (fgroup)
+            deletebelong = 'DELETE FROM belongto WHERE groupName = %s AND groupCreator = %s'
+            deletegroup = 'DELETE FROM friendgroup WHERE groupName = %s AND groupCreator = %s'
+            cursor.execute(deletebelong, (fgroup, username))
+            cursor.execute(deletegroup, (fgroup, username))
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+        else:
+            # If the first query returns data, then friendgroup exists
+            error = "Personal group \"%s\" already exists." % (fgroup)
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            return render_template('show_friendgroups.html', groups = data2, error = error)
+    else:
+        if (addrem == '-'):
+            status = "Group \"%s\" does not exist." % (fgroup)
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+        else:
+            ins = 'INSERT INTO friendgroup VALUES(%s, %s, %s)'
+            status = "Group \"%s\" added." % (fgroup)
+            cursor.execute(ins, (fgroup, username, description))
+            conn.commit()
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+
 
 # Extra feature 11
 # Implemented by Matthew Nguyen (mdn296)
