@@ -92,6 +92,9 @@ def registerAuth():
 def home():
     userID = session['username']
     cursor = conn.cursor();
+    #First query before the union is for finding all visible posts posted by other people
+    #Second query is for finding all visible posts posted by the logged in user
+    #Third query is for finding all visibnle posts posted in a FriendGroup that the logged in user belongs to
     query = 'SELECT firstName, lastName, postingDate, pID \
              FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
              WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
@@ -115,6 +118,9 @@ def home():
 def tagged():
     userID = session['username']
     cursor = conn.cursor();
+    #First query before the union is for finding all visible posts with tags posted by other people
+    #Second query is for finding all visible posts with tags posted by the logged in user
+    #Third query is for finding all visibnle posts with tags posted in a FriendGroup that the logged in user belongs to
     query = 'SELECT tag.pID, tag.username, T.firstName, T.lastName \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person AS P, Person AS T, Tag \
              WHERE follower = %s AND followStatus = 1 AND P.username = Photo.poster AND allFollowers = 1 AND Tag.pID = Photo.pID AND \
@@ -138,7 +144,9 @@ def tagged():
 def reactedTo():
     userID = session['username']
     cursor = conn.cursor();
-    # First query is for finding visible photos posted by others
+    #First query before the union is for finding all visible posts with reactions posted by other people
+    #Second query is for finding all visible posts with reactions posted by the logged in user
+    #Third query is for finding all visibnle posts with reactions posted in a FriendGroup that the logged in user belongs to
     query = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person, ReactTo \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND ReactTo.pID = Photo.pID \
