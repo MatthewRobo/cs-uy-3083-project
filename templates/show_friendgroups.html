@@ -1,0 +1,161 @@
+<html>
+
+<head>
+	<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro&display=swap" rel="stylesheet">
+</head>
+
+<body>
+	<style type="text/css">
+	body {
+		font-family: 'Source Sans Pro', sans-serif;
+		background-color: #fdf9f9;
+	}
+
+	div {
+		background-color: #fff;
+		margin: 2em auto;
+		padding: 1em;
+		max-width: 800px;
+		font-family: 'Source Sans Pro', sans-serif;
+		border: 1px solid black;
+		font-size: 16px;
+		color: #454545;
+		min-height: 80%;
+	}
+
+	h1 {
+		color: #57068c;
+		font-size: 48pt;
+	}
+
+	table {
+		border: 1px solid black;
+		padding: 4px;
+		margin: 1em;
+	}
+
+	th {
+		border-bottom: 1px solid black;
+		text-align: left;
+		padding: 2px;
+		font-weight: normal;
+	}
+
+	td {
+		padding: 4px
+	}
+
+	a,
+	a:visited {
+		text-decoration: none;
+	}
+
+	tr:hover {
+		background-color: #F001;
+	}
+
+	ul {
+		max-width: 832px;
+		list-style-type: none;
+		margin: 0 auto;
+		padding: 0;
+		overflow: hidden;
+		background-color: #57068c;
+	}
+
+	li {
+		float: left;
+	}
+
+	li a {
+		display: block;
+		color: white;
+		text-align: center;
+		padding: 29px 16px;
+		font-weight: bold;
+		font-size: 18px;
+		text-decoration: none;
+		vertical-align: middle;
+	}
+
+	li a:hover {
+		background-color: #220337;
+	}
+
+	.button-small {
+		background-color: #57068c;
+		border: none;
+		color: white;
+		width: 1.3em;
+		height: 1.3em;
+		padding: auto;
+		text-align: center;
+		text-decoration: none;
+		display: inline-block;
+		font-size: 16px;
+		margin: 4px 2px;
+		cursor: pointer;
+	}
+
+	.button-small:visited {
+		color: white;
+	}
+
+	.button-small:hover {
+		color: white;
+		background-color: #220337;
+	}
+
+	.logo svg {
+		fill: #fff;
+		padding:  16px;
+	}
+
+
+	</style>
+	<ul>
+		<li class="logo"><svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 135 46" width="135" height="46">
+				<path class="cls-1" d="M57.88,9.71h5.28l12.26,16v-16H81V35.78H76.1L63.5,19.08v16.7H57.88Z"></path>
+				<path class="cls-1" d="M94,25.56l-10-15.85h6.64l6.3,10.56,6.3-10.56h6.46l-10,15.68V35.78H93.8V25.56Z"></path>
+				<path class="cls-1" d="M112.19,24.7v-15H118V24.53c0,4.26,2,6.48,5.61,6.48s5.62-2.05,5.62-6.31v-15H135V24.53c0,7.84-4.43,11.76-11.41,11.76C116.44,36.29,112.19,32.37,112.19,24.7Z"></path>
+				<path class="cls-1" d="M46,46H0V0H46V46ZM21.45,40.55c0,.34.68.51.85,0l1.53-12.78H19.92l1.53,12.78ZM25.2,26.92V25H18.56v1.88ZM23.32,24c8.34.34,9-7.32,9-10.22h0c-.17.68-1.37,2.73-4.43,4.09A7.38,7.38,0,0,0,23.32,24Zm-.85-.51c1.36-6.3,6.47-6.47,7-7.67.68-1.87-.68-5.28-1-5.62h-.17A11.15,11.15,0,0,1,25.54,14c-1,.85-5.45,4.26-3.07,9.54Zm-1,.34c-2.89-6,2.89-9.88,3.75-10.73.17-.17.17-.17.17-.34A15.55,15.55,0,0,0,24,7.33h-.17c-.51,1.87-3.06,4.6-3.57,5.28-4.43,5.11-3.41,8.35,1.19,11.24ZM20.26,24c-4.77-2.89-4.26-6.81-2.21-9.71V14a7.46,7.46,0,0,0-1.2-2.9c0-.17-.17-.17-.17,0,0,.86-1,2.9-2.38,5.12-1.36,2.38-1.36,7.66,6,7.83Z"></path>
+			</svg></li>
+		<li><a href="/home">Home</a></li>
+		<li><a href="/logout">Logout</a></li>
+	</ul>
+	<div>
+		<h1> Friend Groups </h1>
+		To add a friend to a group, type in their username and press [+]. <br>
+		To remove a friend from a group, type in their username and press [-]. <br>
+		<strong> This cannot be undone. </strong>
+		{% if error %}
+		<p class="error"><strong>Error:</strong> {{error}}</p>
+		{% endif %}
+		{% if status %}
+		<p> {{status}} </p>
+		{% endif %}
+		<table>
+			<td>Group Name</td>
+			<td>Group Description</td>
+			<td>Username</td>
+			<td>Name</td>
+			<td></td>
+			<td></td>
+			{% for line in groups %}
+			<form action="/add_friend" method="POST">
+				<tr>
+					<td>{{line.groupN}}</td>
+					<td>{{line.description}}</td>
+					<td>{{line.friend}}</td>
+					<td>{{line.firstName}} {{line.lastName}}</td>
+					<td> <input type="text" name=friendName placeholder="Add / Remove {{line.groupN}}" required /></td>
+					<td> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='+' /> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="submit" class="button-small" name="addrem" value='-' /></td>
+				</tr>
+			</form>
+			{% endfor %}
+		</table>
+		<br>
+	</div>
+</body>
+
+</html>

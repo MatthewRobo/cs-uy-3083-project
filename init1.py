@@ -7,9 +7,9 @@ app = Flask(__name__)
 
 #Configure MySQL
 conn = pymysql.connect(host='localhost',
-                       port = 8889,
+                       port = 3306,
                        user='root',
-                       password='root',
+                       password='',
                        db='finstagram',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
@@ -340,6 +340,86 @@ def post_photo():
         conn.commit()
         cursor.close()
         return redirect(url_for('home'))
+
+# Extra feature pre-11
+# Implemented by Matthew Nguyen (mdn296)
+# Displays friendgroups to user
+@app.route('/show_friendgroups')
+def show_friendgroups():
+    username = session['username']
+    cursor = conn.cursor();
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    cursor.execute(query, (username))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('show_friendgroups.html', groups=data)
+
+# Extra feature 11
+# Implemented by Matthew Nguyen (mdn296)
+# Adds and remove friends from friend group
+@app.route('/add_friend', methods=['GET', 'POST'])
+def add_friend():
+    username = session['username']
+    fgroup = request.form['groupName']
+    friend = request.form['friendName']
+    addrem = request.form['addrem'] # Add/Removal flag, add is '+', remove is '-'
+
+    cursor = conn.cursor()
+    # Finds if friend already exists in the group
+    query = 'SELECT * FROM belongto \
+             WHERE groupCreator = %s \
+             AND groupName = %s \
+             AND username = %s '
+    cursor.execute(query, (username, fgroup, friend))
+    data = cursor.fetchone()
+    error = None
+
+    # Finds all friendgroups and friends
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    if(data):
+        if (addrem == '-'):
+            status = "%s was added to %s." % (friend, fgroup)
+            deletthis = 'DELETE FROM belongto WHERE username = %s AND groupName = %s AND groupCreator = %s'
+            cursor.execute(deletthis, (friend, fgroup, username))
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+
+        else:
+            # If the first query returns data, then user exists
+            error = "%s is already in %s." % (friend, fgroup)
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            return render_template('show_friendgroups.html', groups = data2, error = error)
+    else:
+        if (username == friend):
+            error = "Cannot add yourself to your own group."
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            return render_template('show_friendgroups.html', groups = data2, error = error)
+
+        else:
+            ins = 'INSERT INTO belongto VALUES(%s, %s, %s)'
+            status = "%s was added to %s." % (friend, fgroup)
+            cursor.execute(ins, (friend, fgroup, username))
+            conn.commit()
+            cursor.execute(query, (username))
+            data2 = cursor.fetchall()
+            cursor.close()
+            return render_template('show_friendgroups.html', groups = data2, status = status)
+
+
 
 @app.route('/select_user')
 def select_user():
