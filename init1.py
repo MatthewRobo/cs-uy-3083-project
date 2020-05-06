@@ -7,9 +7,9 @@ app = Flask(__name__)
 
 #Configure MySQL
 conn = pymysql.connect(host='localhost',
-                       port = 3306,
+                       port = 8889,
                        user='root',
-                       password='',
+                       password='root',
                        db='finstagram',
                        charset='utf8mb4',
                        cursorclass=pymysql.cursors.DictCursor)
@@ -136,7 +136,6 @@ def tagged():
 def reactedTo():
     userID = session['username']
     cursor = conn.cursor();
-    # First query is for finding visible photos posted by others
     query = 'SELECT ReactTo.username, Photo.pID, comment, emoji \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person, ReactTo \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND ReactTo.pID = Photo.pID \
@@ -287,22 +286,6 @@ def search_poster():
                     (SELECT pID FROM Photo WHERE poster = %s)'
         cursor.execute(query, (userID, posterID, userID, posterID, userID, posterID))
         data = cursor.fetchall()
-        # query2 = 'SELECT firstName, lastName, postingDate, pID \
-        #           FROM Photo, Person \
-        #           WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
-        #           (SELECT pID \
-        #           FROM Photo \
-        #           WHERE poster = %s)'
-        # cursor.execute(query2, (userID, posterID))
-        # data2 = cursor.fetchall()
-        # query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
-        #           FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-        #           WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
-        #             SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
-        #             B.username = %s AND Photo.pID IN \
-        #             (SELECT pID FROM Photo WHERE poster = %s)'
-        # cursor.execute(query3, (userID, posterID))
-        # data3 = cursor.fetchall()
         conn.commit()
         cursor.close()
         return render_template('search_by_poster.html', posts=data)
