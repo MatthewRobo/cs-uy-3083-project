@@ -343,6 +343,117 @@ def post_photo():
         cursor.close()
         return redirect(url_for('home'))
 
+@app.route('/add_tags', methods=['GET', 'POST'])
+def add_tags():
+    userID = session['username']
+    cursor = conn.cursor()
+    query = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
+                B.username = %s \
+             ORDER BY postingDate DESC'
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
+    cursor.close()
+    return render_template('addtags.html', username=userID, posts=data)
+
+@app.route('/apply_tags', methods=['GET', 'POST'])
+def apply_tags():
+    userID = session['username']
+    post = request.form['post']
+    target = request.form['target']
+
+    cursor = conn.cursor()
+
+    query = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
+                B.username = %s \
+             ORDER BY postingDate DESC'
+
+    cursor.execute(query, (userID, userID, userID))
+    data = cursor.fetchall()
+
+    query1 = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = %s AND F.groupCreator = Person.username AND \
+                B.username = %s'
+
+    cursor.execute(query1, (userID, post, userID, post, post, userID))
+    is_visible = cursor.fetchone()
+
+    if not (is_visible):
+        error = "This post is not available for you to tag."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    query2 = 'SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, pID \
+             FROM Photo, Person \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster AND pID = %s \
+             UNION \
+             SELECT firstName, lastName, postingDate, SharedWith.pID \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = %s AND F.groupCreator = Person.username AND \
+                B.username = %s'
+
+    cursor.execute(query2, (target, post, target, post, post, target))
+    is_visible2 = cursor.fetchone()
+
+    if not (is_visible2):
+        error = "This post is not visible to user " + target + "."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    query3 = 'SELECT pID FROM tag WHERE pID = %s AND username = %s'
+
+    cursor.execute(query3, (post, target))
+    is_found = cursor.fetchone()
+
+    if (is_found):
+        error = "This post already tags user " + target + "."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    if (target == userID):
+        query4 = 'INSERT INTO tag (pID, username, tagStatus) VALUES (%s, %s, 1)'
+        cursor.execute(query4, (post, target))
+        error = "Added tag to " + target + " successfully."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
+
+    else:
+        query4 = 'INSERT INTO tag (pID, username, tagStatus) VALUES (%s, %s, 0)'
+        cursor.execute(query4, (post, target))
+        error = "Added tag to " + target + " successfully."
+        return render_template('addtags.html', username=userID, posts=data, error=error)
 # Extra feature pre-11
 # Implemented by Matthew Nguyen (mdn296)
 # Displays friendgroups to user
