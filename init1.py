@@ -1,6 +1,8 @@
 #Import Flask Library
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
+import os
+from datetime import datetime
 
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -287,22 +289,6 @@ def search_poster():
                     (SELECT pID FROM Photo WHERE poster = %s)'
         cursor.execute(query, (userID, posterID, userID, posterID, userID, posterID))
         data = cursor.fetchall()
-        # query2 = 'SELECT firstName, lastName, postingDate, pID \
-        #           FROM Photo, Person \
-        #           WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
-        #           (SELECT pID \
-        #           FROM Photo \
-        #           WHERE poster = %s)'
-        # cursor.execute(query2, (userID, posterID))
-        # data2 = cursor.fetchall()
-        # query3 = 'SELECT firstName, lastName, postingDate, SharedWith.pID \
-        #           FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-        #           WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
-        #             SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
-        #             B.username = %s AND Photo.pID IN \
-        #             (SELECT pID FROM Photo WHERE poster = %s)'
-        # cursor.execute(query3, (userID, posterID))
-        # data3 = cursor.fetchall()
         conn.commit()
         cursor.close()
         return render_template('search_by_poster.html', posts=data)
@@ -320,8 +306,12 @@ def post_photo():
     photoID = request.form['pID']
     allFollowers = request.form['allFollowers']
     caption = request.form['caption']
-
+    upload_folder = "C:\databases_project\cs-uy-3083-project-master\images"
     now = datetime.now()
+
+    file = request.files['inputFile']
+    filename = photoID + "." + file.filename.rsplit('.', 1)[1].lower()
+    print(filename)
 
     cursor = conn.cursor()
 
@@ -335,8 +325,9 @@ def post_photo():
         error = "This post ID already exists."
         return render_template('postphoto.html', error=error)
     else:
-        query = 'INSERT INTO photo (pID, postingDate, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s)'
-        cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), allFollowers, caption, username))
+        query = 'INSERT INTO photo (pID, postingDate, filePath, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s, %s)'
+        cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), filename, allFollowers, caption, username))
+        file.save(os.path.join(upload_folder, filename))
         conn.commit()
         cursor.close()
         return redirect(url_for('home'))
