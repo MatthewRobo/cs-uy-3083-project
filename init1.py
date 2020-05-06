@@ -171,13 +171,13 @@ def search_by_tag():
 
 @app.route('/search_tag', methods=['GET', 'POST'])
 def search_tag():
-    # Extra feature 9
-    # Implemented by Simon Oh
-    # Searches through all the photos that are visible to the user by the people who are tagged
+    #Extra feature 9
+    #Implemented by Simon Oh
+    #Searches through all the photos that are visible to the user by the people who are tagged
     userID = session['username']
     taggedPersonID = request.form['taggedPersonID']
     cursor = conn.cursor()
-    # First query is for searching for tags in the photos that other people posted
+    #First query is for searching for tags in the photos that other people posted
     query = 'SELECT pID \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -186,7 +186,7 @@ def search_tag():
              WHERE tagStatus = 1 AND username = %s)'
     cursor.execute(query, (userID, taggedPersonID))
     data = cursor.fetchone()
-    # Second query is for searching for tags in the photos that I posted
+    #Second query is for searching for tags in the photos that was posted by the logged in user
     query2 = 'SELECT pID \
               FROM Photo, Person \
               WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
@@ -195,7 +195,7 @@ def search_tag():
               WHERE tagStatus = 1 AND username = %s)'
     cursor.execute(query2, (userID, taggedPersonID))
     data2 = cursor.fetchone()
-    # Third query is for searching for tags in the photos that are shared in the FriendGroup that I belong in
+    #Third query is for searching for tags in the photos that are shared in the FriendGroup that the logged in user belongs in
     query3 = 'SELECT SharedWith.pID \
               FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
               WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
@@ -204,6 +204,7 @@ def search_tag():
     cursor.execute(query3, (userID, taggedPersonID))
     data3 = cursor.fetchone()
     error = None
+    #If no posts exist from the result of the three searches above, jump to the else statement
     if(data or data2 or data3):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
@@ -241,13 +242,13 @@ def search_by_poster():
 
 @app.route('/search_poster', methods=['GET', 'POST'])
 def search_poster():
-    # Extra feature 10
-    # Implemented by Simon Oh
-    # Searches through all the photos that are visible to the user by the people who posted them
+    #Extra feature 10
+    #Implemented by Simon Oh
+    #Searches through all the photos that are visible to the user by the people who posted them
     userID = session['username']
     posterID = request.form['posterID']
     cursor = conn.cursor()
-    # First query is for searching by usernames in the photos that other people posted
+    #First query is for searching by usernames in the photos that other people posted
     query = 'SELECT pID \
              FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
              WHERE follower = %s AND followStatus = 1 AND Person.username = poster AND allFollowers = 1 AND pID IN \
@@ -256,7 +257,7 @@ def search_poster():
              WHERE poster = %s)'
     cursor.execute(query, (userID, posterID))
     data = cursor.fetchone()
-    # Second query is for searching by usernames in the photos that I posted
+    #Second query is for searching by usernames in the photos that the logged in user posted
     query2 = 'SELECT pID \
               FROM Photo, Person \
               WHERE Photo.poster = %s AND Person.username = Photo.poster AND Photo.pID IN \
@@ -265,6 +266,7 @@ def search_poster():
               WHERE poster = %s)'
     cursor.execute(query2, (userID, posterID))
     data2 = cursor.fetchone()
+    #Third query is for searching by usernames in the photos that are shared in the FriendGroup that the logged in user belongs in
     query3 = 'SELECT SharedWith.pID \
               FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
               WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
@@ -274,6 +276,7 @@ def search_poster():
     cursor.execute(query3, (userID, posterID))
     data3 = cursor.fetchone()
     error = None
+    #If no posts exist from the result of the three searches above, jump to the else statement
     if(data or data2 or data3):
         query = 'SELECT firstName, lastName, postingDate, pID \
                  FROM (Photo INNER JOIN Follow ON Photo.poster = Follow.followee), Person \
