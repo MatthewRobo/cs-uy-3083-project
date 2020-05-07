@@ -31,6 +31,19 @@
 			<p class="error"><strong>Error:</strong> {{error}}</p>
 			{% endif %}
 		</form>
+
+
+		{% for line in groups %}
+		<form action="/share" method="POST">
+			<tr>
+				<td>{{line.groupN}}</td>
+				<td>{{line.description}}</td>
+				<td> <input type="text" name=pID placeholder="Insert pID to share with {{line.groupN}}" required /></td>
+				<td> <input type="hidden" name=groupName value="{{line.groupN}}" /> <input type="hidden" name=groupCreator value="{{line.groupCreator}}" /> <input type="submit" class="button" name="addrem" value='Share' />
+			</tr>
+		</form>
+		{% endfor %}
+
 	</div>
 </body>
 
