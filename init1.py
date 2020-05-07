@@ -488,7 +488,19 @@ def search_poster():
 
 @app.route ('/post')
 def post():
-    return render_template("postphoto.html")
+    username = session['username']
+    cursor = conn.cursor()
+
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, fg.groupCreator AS groupCreator, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    cursor.execute(query, (username))
+    data = cursor.fetchall()
+
+    return render_template("postphoto.html", groups=data)
 
 @app.route('/post_photo', methods=['GET', 'POST'])
 def post_photo():
@@ -510,14 +522,80 @@ def post_photo():
 
     data = cursor.fetchone()
 
+    query2 = 'SELECT fg.groupName AS groupN, fg.description AS description, fg.groupCreator AS groupCreator, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+
+    cursor.execute(query2, (username))
+    data2 = cursor.fetchall()
+
     error = None
     if (data):
         error = "This post ID already exists."
-        return render_template('postphoto.html', error=error)
+        cursor.close()
+        return render_template('postphoto.html', error=error, groups=data2)
     else:
         query = 'INSERT INTO photo (pID, postingDate, filePath, allFollowers, caption, poster) VALUES(%s, %s, %s, %s, %s, %s)'
         cursor.execute(query, (photoID, now.strftime('%Y-%m-%d %H:%M:%S'), filename, allFollowers, caption, username))
         file.save(os.path.join(upload_folder, filename))
+        conn.commit()
+        cursor.close()
+        return redirect(url_for('home'))
+
+@app.route('/share', methods=['GET', 'POST'])
+def share():
+    userID = session['username']
+    pID = request.form['pID']
+    groupName = request.form['groupName']
+    groupCreator = request.form['groupCreator']
+    cursor = conn.cursor()
+
+    query = 'SELECT fg.groupName AS groupN, fg.description AS description, fg.groupCreator AS groupCreator, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s'
+    cursor.execute(query, (userID))
+    data = cursor.fetchall()
+
+    query2 = 'SELECT fg.groupName AS groupN, fg.description AS description, \
+                    bt.username AS friend, p.firstName AS firstName, p.lastName AS lastName\
+             FROM friendgroup AS fg \
+             LEFT JOIN belongto AS bt ON fg.groupName = bt.groupName AND fg.groupCreator = bt.groupCreator \
+             LEFT JOIN person AS p ON bt.username = p.username \
+             WHERE fg.groupCreator = %s AND fg.groupName = %s'
+
+    cursor.execute(query2, (userID, groupName))
+    data2 = cursor.fetchone()
+
+    if not (data2):
+        error = "You are not in this friend group."
+        return render_template('postphoto.html', error=error, groups=data)
+
+    query3 = 'SELECT pID, poster FROM photo WHERE poster = %s AND pID = %s'
+
+    cursor.execute(query3, (userID, pID))
+    data3 = cursor.fetchone()
+
+    if not (data3):
+        error = "This is not your post."
+        return render_template('postphoto.html', error=error, groups=data)
+
+    query4 = 'SELECT pID, groupName FROM sharedwith WHERE pID = %s AND groupName = %s'
+    cursor.execute(query4, (pID, groupName))
+    data4 = cursor.fetchone()
+
+    if (data4):
+        error = "You're already shared this post with this group."
+        return render_template('postphoto.html', error=error, groups=data)
+
+    else:
+        query5 = "INSERT INTO sharedwith (pID, groupName, groupCreator) VALUES (%s, %s, %s)"
+        cursor.execute(query5, (pID, groupName, groupCreator))
         conn.commit()
         cursor.close()
         return redirect(url_for('home'))
