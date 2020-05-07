@@ -87,7 +87,8 @@ def registerAuth():
         conn.commit()
         cursor.close()
         return render_template('index.html')
-
+#modified for optional task 7
+#by mdn296 MATTHEW nguyen
 @app.route('/home')
 def home():
     userID = session['username']
@@ -95,23 +96,92 @@ def home():
     #First query before the union is for finding all visible posts posted by other people
     #Second query is for finding all visible posts posted by the logged in user
     #Third query is for finding all visibnle posts posted in a FriendGroup that the logged in user belongs to
-    query = 'SELECT firstName, lastName, postingDate, pID \
-             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person \
-             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1 \
-             UNION \
-             SELECT firstName, lastName, postingDate, pID \
-             FROM Photo, Person \
-             WHERE Photo.poster = %s AND Person.username = Photo.poster \
-             UNION \
-             SELECT firstName, lastName, postingDate, SharedWith.pID \
-             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person \
-             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND \
-                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND \
-                B.username = %s \
-             ORDER BY postingDate DESC'
-    cursor.execute(query, (userID, userID, userID))
+    query = 'SELECT firstName, lastName, postingDate, t1.pID, comment, emoji FROM (SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person  \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, pID  \
+             FROM Photo, Person  \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, SharedWith.pID  \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person  \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND  \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND  \
+                B.username = %s  \
+             ORDER BY postingDate DESC) AS t1 \
+    LEFT JOIN reactto ON t1.pID = reactto.PID AND reactto.username = %s'
+    #modiefied by mdn296 to show reactions
+    cursor.execute(query, (userID, userID, userID, userID))
     data = cursor.fetchall()
     cursor.close()
+    return render_template('home.html', username=userID, posts=data)
+
+@app.route('/set_comment', methods=['GET', 'POST'])
+def set_comment():
+    userID = session['username']
+    cursor = conn.cursor();
+    comment = request.form['comment']
+    pID = request.form['pID']
+    now = datetime.now()
+    query = ' INSERT INTO reactto (username, pID, reactiontime, comment) \
+              VALUES (%s, %s, %s, %s) \
+              ON DUPLICATE KEY UPDATE  \
+                reactionTime = %s, \
+                comment = %s '
+    cursor.execute(query, (userID, pID, now, comment, now, comment))
+    query = 'SELECT firstName, lastName, postingDate, t1.pID, comment, emoji FROM (SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person  \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, pID  \
+             FROM Photo, Person  \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, SharedWith.pID  \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person  \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND  \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND  \
+                B.username = %s  \
+             ORDER BY postingDate DESC) AS t1 \
+    LEFT JOIN reactto ON t1.pID = reactto.PID AND reactto.username = %s'
+    cursor.execute(query, (userID, userID, userID, userID))
+    data = cursor.fetchall()
+    cursor.close
+    return render_template('home.html', username=userID, posts=data)
+
+
+@app.route('/set_emoji', methods=['GET', 'POST'])
+def set_emoji():
+    userID = session['username']
+    cursor = conn.cursor();
+    comment = request.form['comment'] #yes this variable is the emoji
+    pID = request.form['pID']
+    now = datetime.now()
+    query = ' INSERT INTO reactto (username, pID, reactiontime, emoji) \
+              VALUES (%s, %s, %s, %s) \
+              ON DUPLICATE KEY UPDATE  \
+                reactionTime = %s, \
+                emoji = %s '
+    cursor.execute(query, (userID, pID, now, comment, now, comment))
+    query = 'SELECT firstName, lastName, postingDate, t1.pID, comment, emoji FROM (SELECT firstName, lastName, postingDate, pID \
+             FROM Photo INNER JOIN Follow ON Photo.poster = Follow.followee, Person  \
+             WHERE follower = %s AND followStatus = 1 AND username = poster AND allFollowers = 1  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, pID  \
+             FROM Photo, Person  \
+             WHERE Photo.poster = %s AND Person.username = Photo.poster  \
+             UNION  \
+             SELECT firstName, lastName, postingDate, SharedWith.pID  \
+             FROM FriendGroup AS F, BelongTo AS B, SharedWith, Photo, Person  \
+             WHERE F.groupName = B.groupName AND F.groupCreator = B.groupCreator AND SharedWith.groupName = F.groupName AND  \
+                SharedWith.groupCreator = F.groupCreator AND SharedWith.pID = Photo.pID AND F.groupCreator = Person.username AND  \
+                B.username = %s  \
+             ORDER BY postingDate DESC) AS t1 \
+    LEFT JOIN reactto ON t1.pID = reactto.PID AND reactto.username = %s'
+    cursor.execute(query, (userID, userID, userID, userID))
+    data = cursor.fetchall()
+    cursor.close
     return render_template('home.html', username=userID, posts=data)
 
 @app.route('/tagged', methods=['GET', 'POST'])
