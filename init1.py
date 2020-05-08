@@ -522,6 +522,177 @@ def post_photo():
         cursor.close()
         return redirect(url_for('home'))
 
+        # Mandatory feature 4
+        # Implemented by Matthew Nguyen (mdn296)
+        # Displays follows to user
+        @app.route('/show_follows')
+        def show_follows():
+            username = session['username']
+            cursor = conn.cursor();
+
+            query = 'SELECT DISTINCT  \
+                         CASE WHEN f.follower = %s THEN f.followee ELSE f.follower \
+                     END AS uname, \
+                         CASE WHEN f.follower = %s THEN p1.firstname ELSE p2.firstname \
+                     END AS fname, \
+                         CASE WHEN f.follower = %s THEN p1.lastname ELSE p2.lastname \
+                     END AS lname \
+                     FROM \
+                         `follow` AS f \
+                     LEFT JOIN person AS p1 \
+                     ON \
+                         f.followee = p1.username \
+                     LEFT JOIN person AS p2 \
+                     ON \
+                         f.follower = p2.username \
+                     WHERE \
+                         %s IN(follower, followee) AND 1 IN(followStatus) '
+            cursor.execute(query, (username,username,username,username))
+            mutuals = cursor.fetchall()
+            query = 'SELECT followee AS uname FROM follow WHERE %s IN (follower) AND 0 IN (followstatus)'
+            cursor.execute(query, (username))
+            sent = cursor.fetchall()
+            query = 'SELECT \
+                         p.username AS uname, \
+                         p.firstName AS fname, \
+                         p.lastName AS lname \
+                     FROM \
+                         follow AS f \
+                     LEFT JOIN person AS p \
+                     ON \
+                         f.follower = p.username \
+                     WHERE \
+                         %s IN(followee) AND 0 IN(followstatus)'
+            cursor.execute(query, (username))
+            received = cursor.fetchall()
+            cursor.close()
+            return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received)
+
+# Mandatory feature 4
+# Implemented by Matthew Nguyen (mdn296)
+# Displays follows to user
+@app.route('/show_follows', methods=['GET', 'POST'])
+def show_follows():
+    username = session['username']
+    cursor = conn.cursor();
+    error = None
+    data = None
+
+    query = 'SELECT DISTINCT  \
+                 CASE WHEN f.follower = %s THEN f.followee ELSE f.follower \
+             END AS uname, \
+                 CASE WHEN f.follower = %s THEN p1.firstname ELSE p2.firstname \
+             END AS fname, \
+                 CASE WHEN f.follower = %s THEN p1.lastname ELSE p2.lastname \
+             END AS lname \
+             FROM \
+                 `follow` AS f \
+             LEFT JOIN person AS p1 \
+             ON \
+                 f.followee = p1.username \
+             LEFT JOIN person AS p2 \
+             ON \
+                 f.follower = p2.username \
+             WHERE \
+                 %s IN(follower, followee) AND 1 IN(followStatus) '
+    cursor.execute(query, (username,username,username,username))
+    mutuals = cursor.fetchall()
+    query = 'SELECT followee AS uname FROM follow WHERE %s IN (follower) AND 0 IN (followstatus)'
+    cursor.execute(query, (username))
+    sent = cursor.fetchall()
+    query = 'SELECT \
+                 p.username AS uname, \
+                 p.firstName AS fname, \
+                 p.lastName AS lname \
+             FROM \
+                 follow AS f \
+             LEFT JOIN person AS p \
+             ON \
+                 f.follower = p.username \
+             WHERE \
+                 %s IN(followee) AND 0 IN(followstatus)'
+    cursor.execute(query, (username))
+    received = cursor.fetchall()
+    cursor.close()
+    return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received, error=error)
+# Mandatory feature 4
+# Implemented by Matthew Nguyen (mdn296)
+# Displays follows to user
+@app.route('/update_follows', methods=['GET', 'POST'])
+def update_follows():
+    username = session['username']
+    cursor = conn.cursor();
+    target = request.form['target']
+    addrem = request.form['addrem'] # Add/Removal flag, add is '+', remove is '-', send new is 'send'
+    error = None
+    data = None
+    if (addrem == 'Send'):
+        query = 'SELECT * FROM follow WHERE %s IN (follower, followee) AND %s IN (follower, followee)'
+        cursor.execute(query, (username, target))
+
+    if (addrem == '+'):
+        accept = 'UPDATE follow \
+                  SET followstatus = 1 \
+                  WHERE follower = %s \
+                  AND followee = %s'
+        cursor.execute(accept, (target, username))
+
+    if (addrem == '-'):
+        deny = 'DELETE FROM follow \
+                WHERE follower = %s \
+                AND followee = %s'
+        cursor.execute(deny, (target, username))
+
+    if (addrem == 'Send'):
+        data = cursor.fetchone()
+        if (data):
+            error = "[ %s <- - ? - -> %s ] followship already exists" % (username, target)
+        else:
+            ins = 'INSERT INTO follow VALUES (%s, %s, 0)'
+            cursor.execute(ins, (username, target))
+
+
+    query = 'SELECT DISTINCT  \
+                 CASE WHEN f.follower = %s THEN f.followee ELSE f.follower \
+             END AS uname, \
+                 CASE WHEN f.follower = %s THEN p1.firstname ELSE p2.firstname \
+             END AS fname, \
+                 CASE WHEN f.follower = %s THEN p1.lastname ELSE p2.lastname \
+             END AS lname \
+             FROM \
+                 `follow` AS f \
+             LEFT JOIN person AS p1 \
+             ON \
+                 f.followee = p1.username \
+             LEFT JOIN person AS p2 \
+             ON \
+                 f.follower = p2.username \
+             WHERE \
+                 %s IN(follower, followee) AND 1 IN(followStatus) '
+    cursor.execute(query, (username,username,username,username))
+    mutuals = cursor.fetchall()
+    query = 'SELECT followee AS uname FROM follow WHERE %s IN (follower) AND 0 IN (followstatus)'
+    cursor.execute(query, (username))
+    sent = cursor.fetchall()
+    query = 'SELECT \
+                 p.username AS uname, \
+                 p.firstName AS fname, \
+                 p.lastName AS lname \
+             FROM \
+                 follow AS f \
+             LEFT JOIN person AS p \
+             ON \
+                 f.follower = p.username \
+             WHERE \
+                 %s IN(followee) AND 0 IN(followstatus)'
+    cursor.execute(query, (username))
+    received = cursor.fetchall()
+    cursor.close()
+    return render_template('show_follows.html', mutuals=mutuals, sent=sent, received=received, error=error)
+
+
+
+
 @app.route('/add_tags', methods=['GET', 'POST'])
 def add_tags():
     userID = session['username']
